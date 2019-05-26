@@ -1,0 +1,229 @@
+<meta charset='UTF-8'>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<div id='vue-wrap'>
+    <wrap></wrap>
+</div>
+<script>
+Vue.component('wrap', {
+    template: `
+    <div>
+        <svg :viewBox='viewBox' :width='width'>
+            <edge-item
+                v-for='edge in edges'
+                v-if='!edge.path'
+                :key='edge.id'
+                :pos1='nodes[edge.i]'
+                :pos2='nodes[edge.j]'
+                :a='edge.a'
+            ></edge-item>
+            <edge-item
+                v-for='edge in edges'
+                v-if='edge.path'
+                :key='edge.id'
+                :pos1='nodes[edge.i]'
+                :pos2='nodes[edge.j]'
+                :a='edge.a'
+            ></edge-item>
+            <node-item
+                @select='select'
+                v-for='node in nodes'
+                :key='node.id'
+                :node='node'
+                :pos='node'
+                :a='node.a'
+            ></node-item>
+        </svg>
+        <br>
+        <button v-on:click='init()'>Init</button>
+        <input type='radio' id='start' value='start' v-model='picked'>
+        <label for='start' style='color: red'>Start</label>
+        <input type='radio' id='goal' value='goal' v-model='picked'>
+        <label for='goal' style='color: blue'>Goal</label>
+    </div>
+    `,
+    props: {
+    },
+    computed: {
+    },
+    data: function() {
+        return {
+            viewBox: '-0.05 -0.05 1.1 0.6',
+            width: '800',
+            node_gap: 0.03,
+            node_max: 200,
+            nodes: [], 
+            edges: [],
+            distance: [],
+            rev: [], 
+            start: 0,
+            goal: 1,
+            picked: 'start',
+        }
+    },
+    created: function() {
+        this.init();
+    },
+    methods: {
+        init: function() {
+            this.nodes = [];
+            this.edges = [];
+            var id = 0;
+            // generate nodes
+            while(this.nodes.length < this.node_max){
+                var y = Math.random();
+                if(y > 0.5) continue;
+                var x = Math.random();
+                var f = false;
+                for(var node of this.nodes){
+                    var dx = node.x - x;
+                    var dy = node.y - y;
+                    if(dx*dx + dy*dy < this.node_gap*this.node_gap){
+                        f = true;
+                    }
+                }
+                if(f) continue;
+                this.nodes.push({id: id, x: x, y: y, a: 0});
+                id += 1;
+                this.distance.push(Infinity);
+                this.rev.push({from: -1, index: -1});
+            }
+
+            // generate edges
+            for(var i=0;i<this.node_max;i++){
+                for(var j=i+1;j<this.node_max;j++){
+                    var pi = this.nodes[i];
+                    var pj = this.nodes[j];
+                    var dx = pi.x - pj.x;
+                    var dy = pi.y - pj.y;
+                    if(dx*dx + dy*dy < this.node_gap*this.node_gap*5){
+                        this.edges.push({
+                            id: id,
+                            i: i,
+                            j: j,
+                            d: Math.sqrt(dx*dx+dy*dy),
+                            a: 0,
+                        });
+                        id++;
+                    }
+                }
+            }
+
+            this.start = 0;
+            this.goal = 1;
+
+            this.solve();
+        },
+        solve: function() {
+            // BF algorithm
+            for(var edge of this.edges){
+                edge.a = 0;
+            }
+            for(var i=0;i<this.node_max;i++){
+                this.nodes[i].a = 0;
+                this.distance[i] = Infinity;
+                this.rev[i] = {from: -1, index: -1};
+            }
+            this.distance[this.start] = 0;
+            var f = true;
+            while(f){
+                f = false;
+                for(var [i, edge] of this.edges.entries()){
+                    if(this.distance[edge.i] != Infinity){
+                        if(this.distance[edge.j] > this.distance[edge.i] + edge.d){
+                            this.distance[edge.j] = this.distance[edge.i] + edge.d;
+                            this.rev[edge.j] = {from: edge.i, index: i};
+                            f = true;
+                        }
+                    }
+                    if(this.distance[edge.j] != Infinity){
+                        if(this.distance[edge.i] > this.distance[edge.j] + edge.d){
+                            this.distance[edge.i] = this.distance[edge.j] + edge.d;
+                            this.rev[edge.i] = {from: edge.j, index: i};
+                            f = true;
+                        }
+                    }
+                }
+            }
+
+            if(this.distance[this.goal] != Infinity){
+                var now = this.goal;
+                while(now != this.start){
+                    this.edges[this.rev[now].index].a = 1;
+                    now = this.rev[now].from;
+                    this.nodes[now].a = 1;
+                }
+            }
+
+            this.nodes[this.start].a = 2;
+            this.nodes[this.goal].a = 3;
+        },
+        select: function(id) {
+            this[this.picked] = id;
+            this.solve();
+        }
+    }
+});
+
+Vue.component('node-item', {
+    template: `
+    <g
+        @mousedown='mouseDown'
+    >
+        <circle
+            :cx = 'pos.x'
+            :cy = 'pos.y'
+            :r  = 'r*2'
+            fill = '#00000000'
+        />
+        <circle
+            :cx = 'pos.x'
+            :cy = 'pos.y'
+            :r  = 'r'
+            :fill = 'fill'
+        />
+    </g>
+    `, 
+    props: ['pos', 'a', 'node'],
+    computed: {
+        fill: function() {
+            if(this.a == 1) return 'lime'
+            if(this.a == 2) return 'red'
+            if(this.a == 3) return 'blue'
+            return 'gray';
+        },
+        r: function() {
+            if(this.a > 0) return '0.008'
+            return '0.007';
+        }
+    },
+    methods: {
+        mouseDown: function(e){ if(e.buttons == 1){ this.$emit('select', this.node.id); } },
+    },
+});
+
+Vue.component('edge-item', {
+    template: `
+    <line
+        :x1='pos1.x' :y1='pos1.y'
+        :x2='pos2.x' :y2='pos2.y'
+        :stroke-width='stroke_width'
+        :stroke='stroke'
+    />
+    `, 
+    props: ['pos1', 'pos2', 'a'],
+    computed: {
+        stroke: function() {
+            if(this.a == 1) return 'lime'
+            return 'gray';
+        },
+        stroke_width: function() {
+            if(this.a > 0) return '0.003'
+            return '0.001';
+        },
+    },
+});
+
+window.onload = function(){
+    new Vue({el: "#vue-wrap"});
+};
+</script>
