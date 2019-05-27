@@ -45,6 +45,8 @@ Vue.component('wrap', {
         <label for='start' style='color: red'>Start</label>
         <input type='radio' id='goal' value='goal' v-model='picked'>
         <label for='goal' style='color: blue'>Goal</label>
+        <input type='radio' id='toggle' value='toggle' v-model='picked'>
+        <label for='toggle' style='color: black'>Destroy</label>
     </div>
     `,
     data: function() {
@@ -123,7 +125,9 @@ Vue.component('wrap', {
                 edge.a = 0;
             }
             for(var i=0;i<this.node_max;i++){
-                this.nodes[i].a = 0;
+                if(this.nodes[i].a != 4){
+                    this.nodes[i].a = 0;
+                }
                 this.distance[i] = Infinity;
                 this.rev[i] = {from: -1, index: -1};
             }
@@ -132,6 +136,8 @@ Vue.component('wrap', {
             while(f){
                 f = false;
                 for(var [i, edge] of this.edges.entries()){
+                    if(this.nodes[edge.i].a == 4) continue;
+                    if(this.nodes[edge.j].a == 4) continue;
                     if(this.distance[edge.i] != Infinity){
                         if(this.distance[edge.j] > this.distance[edge.i] + edge.d){
                             this.distance[edge.j] = this.distance[edge.i] + edge.d;
@@ -167,7 +173,19 @@ Vue.component('wrap', {
             this.nodes[this.goal].a = 3;
         },
         select: function(id) {
-            this[this.picked] = id;
+            if(this.picked == 'toggle'){
+                if(this.nodes[id].a != 2 && this.nodes[id].a != 3){
+                    if(this.nodes[id].a == 4){
+                        this.nodes[id].a = 0;
+                    }else{
+                        this.nodes[id].a = 4;
+                    }
+                }
+            }else{
+                if(this.nodes[id].a == 0 || this.nodes[id].a == 1){
+                    this[this.picked] = id;
+                }
+            }
             this.solve();
         }
     }
@@ -190,12 +208,7 @@ Vue.component('node-item', {
             :r  = 'r'
             :fill = 'fill'
         />
-        <circle
-            :cx = 'pos.x'
-            :cy = 'pos.y'
-            r   = '0.000'
-            fill = 'white'
-        />
+        <destroyed v-if='a == 4' :cx='pos.x' :cy='pos.y'></destroyed>
     </g>
     `, 
     props: ['pos', 'a', 'node'],
@@ -254,6 +267,24 @@ Vue.component('edge-item', {
             return w;
             //return 0.004;
         },
+    },
+});
+
+Vue.component('destroyed', {
+    template: `
+    <g>
+        <line :x1='cx-l' :y1='cy-l' :x2='cx+l' :y2='cy+l' 
+              stroke='red' :stroke-width='stroke_width'/>
+        <line :x1='cx-l' :y1='cy+l' :x2='cx+l' :y2='cy-l'
+              stroke='red' :stroke-width='stroke_width'/>
+    </g>
+    `,
+    props: ['cx', 'cy'],
+    data: function() {
+        return {
+            l: 0.008,
+            stroke_width: 0.003,
+        }
     },
 });
 
