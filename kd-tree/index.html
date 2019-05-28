@@ -1,0 +1,150 @@
+<meta charset='UTF-8'>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<div id='vue-wrap'>
+    <wrap></wrap>
+</div>
+<script>
+Vue.component('wrap', {
+    template: `
+    <svg viewBox='-50 -50 1100 1100' width='1000'>
+        <tree-item :tree='tree'></tree-item>
+    </svg>
+    `,
+    data: function() {
+        return {
+            tree: [], 
+            n: 1024,
+        }
+    },
+    created: function() {
+        this.init();
+    }, 
+    methods: {
+        init: function() {
+            var nodes = [];
+            for(var i=0;i<this.n;i++){
+                nodes.push({x: Math.random()*1000, y: Math.random()*1000});
+            }
+            this.tree = this.createTree(nodes, 0, 0, 0, 1000, 1000);
+        },
+        createTree: function(nodes, d, sx, sy, tx, ty) {
+            var m = nodes.length;
+            if(d%2 == 0){
+                nodes.sort(function(a, b){return a.x - b.x});
+            }else{
+                nodes.sort(function(a, b){return a.y - b.y});
+            }
+            var a = [];
+            var b = [];
+            for(var i=0;i<m;i++){
+                if(i < Math.floor(m/2)){
+                    a.push(nodes[i]);
+                }
+                if(i > Math.floor(m/2)){
+                    b.push(nodes[i]);
+                }
+            }
+            var x = nodes[Math.floor(m/2)].x;
+            var y = nodes[Math.floor(m/2)].y;
+            var nsx = 0;
+            var nsy = 0;
+            var ntx = 0;
+            var nty = 0;
+            if(d%2 == 0){
+                nsx = x;
+                nsy = sy;
+                ntx = x;
+                nty = ty;
+            }else{
+                nsx = sx;
+                nsy = y;
+                ntx = tx;
+                nty = y;
+            }
+            return {
+                d: d,
+                x: x, 
+                y: y, 
+                sx: sx, sy: sy,
+                tx: tx, ty: ty,
+                nsx: nsx, nsy: nsy,
+                ntx: ntx, nty: nty,
+                a: a.length == 0 ? null : this.createTree(a, d+1, sx, sy, ntx, nty), 
+                b: b.length == 0 ? null : this.createTree(b, d+1, nsx, nsy, tx, ty),
+            };
+        },
+        solve: function() {
+        },
+        select: function() {
+        }
+    }
+});
+
+Vue.component('tree-item', {
+    template: `
+    <g
+        @mouseleave='mouseLeave'
+        @mouseenter='mouseEnter'
+    >
+        <circle
+            :cx='tree.x'
+            :cy='tree.y'
+            r='4'
+            :fill='circle_fill'
+            :stroke='circle_stroke'
+        ></circle>
+        <line
+            :x1='tree.nsx'
+            :y1='tree.nsy'
+            :x2='tree.ntx'
+            :y2='tree.nty'
+            stroke-width='1'
+            :stroke='line_stroke'>
+        </line>
+        <rect
+            :x='tree.sx'
+            :y='tree.sy'
+            :width='tree.tx-tree.sx'
+            :height='tree.ty-tree.sy'
+            :fill='rect_fill'
+        ></rect>
+        <tree-item v-if='tree.a != null' :tree='tree.a'></tree-item>
+        <tree-item v-if='tree.b != null' :tree='tree.b'></tree-item>
+    </g>
+    `,
+    props: ['tree'],
+    data: function() {
+        return {
+            active: false,
+            mouseX: 0,
+            mouseY: 0,
+        }
+    },
+    computed: {
+        rect_fill: function() {
+            return this.active ? 'rgba(0%, 0%, 100%, 0.1)' : 'rgba(0%, 0%, 0%, 0)';
+        },
+        circle_fill: function() {
+            return this.active ? 'black' : 'gray';
+        },
+        circle_stroke: function() {
+            return '#0000';
+        },
+        line_stroke: function() {
+            return this.active ? 'black' : 'gray';
+        },
+    },
+    methods: {
+        mouseEnter: function() {
+            this.active = true;
+        },
+        mouseLeave: function() {
+            this.active = false;
+        },
+    }, 
+});
+
+window.onload = function(){
+    new Vue({el: "#vue-wrap"});
+};
+</script>
