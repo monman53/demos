@@ -1,0 +1,212 @@
+<!doctype html>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+
+<style>
+body {
+    margin: 0;
+}
+#canvas {
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    top: 0;
+
+    image-rendering:optimizeSpeed;             /* Legal fallback */
+    image-rendering:-moz-crisp-edges;          /* Firefox        */
+    image-rendering:-o-crisp-edges;            /* Opera          */
+    image-rendering:-webkit-optimize-contrast; /* Safari         */
+    image-rendering:optimize-contrast;         /* CSS3 Proposed  */
+    image-rendering:crisp-edges;               /* CSS4 Proposed  */
+    image-rendering:pixelated;                 /* CSS4 Proposed  */
+    -ms-interpolation-mode:nearest-neighbor;   /* IE8+           */
+}
+</style>
+
+<canvas id="canvas"></canvas>
+
+<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
+
+<script type="x-shader/x-fragment" id="initialShader">
+uniform float screenWidth;
+uniform float screenHeight;
+uniform sampler2D texture;
+uniform sampler2D logoTexture;
+
+void main() {
+    float x = gl_FragCoord.x;
+    float y = gl_FragCoord.y;
+    float nx = x - float(int(screenWidth*0.5))  + 32.;
+    float ny = y - float(int(screenHeight*0.5)) + 32.;
+
+    if(texture2D(texture, vec2(nx/64., ny/64.)).r > 0.5){
+        gl_FragColor = vec4(1, 0, 0, 0);
+    }else{
+        gl_FragColor = vec4(0, 0, 0, 0);
+    }
+}
+</script>
+
+<script type="x-shader/x-fragment" id="computeShader">
+uniform int timer;
+uniform float screenWidth;
+uniform float screenHeight;
+uniform vec2 d;
+uniform sampler2D texture;
+uniform sampler2D logoTexture;
+
+void main() {
+    vec2 p = gl_FragCoord.xy*d;
+
+    float xml = p.x - d.x; xml = (xml < 0.) ? xml + 1. : xml;
+    float xpl = p.x + d.x; xpl = (xpl > 1.) ? xpl - 1. : xpl;
+    float yml = p.y - d.y; yml = (yml < 0.) ? yml + 1. : yml;
+    float ypl = p.y + d.y; ypl = (ypl > 1.) ? ypl - 1. : ypl;
+
+    int cnt = 0;
+    if(texture2D(texture, vec2(xpl, p.y)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(xpl, ypl)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(p.x, ypl)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(xml, ypl)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(xml, p.y)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(xml, yml)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(p.x, yml)).r > 0.5) cnt++;
+    if(texture2D(texture, vec2(xpl, yml)).r > 0.5) cnt++;
+
+    vec4 tex = texture2D(texture, p);
+    vec4 ans = tex;
+
+    // logo
+    float scale = 0.3;
+    float nx = gl_FragCoord.x - float(int(screenWidth*0.5))  + 256.*scale;
+    float ny = gl_FragCoord.y - float(int(screenHeight*0.5)) + 256.*scale;
+
+    if(texture2D(logoTexture, vec2(nx/(512.*scale), ny/(512.*scale))).r > 0.5 && timer > 300){
+        ans.g = 1.;
+    }
+
+    // conway's game of life rule
+    if(tex.r > 0.5){
+        if(cnt <= 1){
+            ans.r = 0.;
+        }else if(cnt <= 3){
+            ans.r = 1.;
+        }else{
+            ans.r = 0.;
+        }
+    }else{
+        if(cnt == 3){
+            ans.r = 1.;
+        }else{
+            ans.r = 0.;
+        }
+    }
+
+    // trigger
+    if(timer == 250){
+        if(abs(gl_FragCoord.x - screenWidth*0.5) <= 1. && abs(p.y-0.5) < 0.5*d.y){
+            gl_FragColor = vec4(0, 0, 0, 0);
+            ans.r = 0.;
+        }
+    }
+
+    gl_FragColor = ans;
+}
+</script>
+
+<script type="x-shader/x-fragment" id="fragmentShader">
+uniform int timer;
+uniform vec2 d;
+uniform sampler2D texture;
+
+void main() {
+    gl_FragColor = vec4(0, 0, 0.15, 1);
+
+    vec4 tex = texture2D(texture, gl_FragCoord.xy*d);
+    if(tex.g > 0.5){
+        gl_FragColor = vec4(0.8, 0.8, 0.4, 1.)*min(float(timer-300)/300., 1.);
+    }
+    if(tex.r > 0.5){
+        gl_FragColor = vec4(0.8, 0.8, 0.4, 1.);
+    }
+}
+</script>
+
+
+<script>
+
+var canvas = document.getElementById("canvas");
+canvas.width  = Math.floor(window.innerWidth/2);
+canvas.height = Math.floor(window.innerHeight/2);
+var uniforms = {
+    screenWidth:    {type: "f", value: canvas.width}, 
+    screenHeight:   {type: "f", value: canvas.height}, 
+    d:              {type: "f", value: new THREE.Vector2(1./canvas.width, 1./canvas.height)}, 
+    texture:        {type: "t", value: undefined},
+    logoTexture:    {type: "t", value: undefined},
+    timer:          {type: "i", value: 0},
+}
+var renderer = new THREE.WebGLRenderer({canvas: this.canvas});
+var scene    = new THREE.Scene();
+var camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
+camera.position.z = 1;
+scene.add(camera);
+
+var initialShaderMaterial = new THREE.ShaderMaterial({
+    uniforms: uniforms, 
+    fragmentShader: document.getElementById('initialShader').textContent,
+});
+
+var computeShaderMaterial = new THREE.ShaderMaterial({
+    uniforms: uniforms, 
+    fragmentShader: document.getElementById('computeShader').textContent,
+});
+
+var flagmentShaderMaterial = new THREE.ShaderMaterial({
+    uniforms: uniforms, 
+    fragmentShader: document.getElementById('fragmentShader').textContent,
+});
+
+var textures = [];
+for(var i=0;i<2;i++){
+    textures.push(new THREE.WebGLRenderTarget(
+        canvas.width, 
+        canvas.height,
+    ));
+}
+
+var plane = new THREE.PlaneGeometry(1.0, 1.0);
+var mesh = new THREE.Mesh(plane, flagmentShaderMaterial)
+scene.add(mesh);
+
+var pingpong = 0;
+
+var initialRender = function() {
+    mesh.material = initialShaderMaterial;
+    renderer.setRenderTarget(textures[0]);
+    renderer.render(scene, camera);
+    uniforms.texture.value = textures[0].texture;
+    animate();
+}
+var animate = function() {
+    mesh.material = computeShaderMaterial;
+    for(var i=0;i<3;i++){
+        renderer.setRenderTarget(textures[1-pingpong]);
+        renderer.render(scene, camera);
+        uniforms.texture.value = textures[1-pingpong].texture;
+        pingpong = 1-pingpong;
+        uniforms.timer.value += 1;
+    }
+
+    mesh.material = flagmentShaderMaterial;
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+
+    window.setTimeout(function() {
+        window.requestAnimationFrame(animate);
+    }, 20);
+}
+
+uniforms.logoTexture.value = new THREE.TextureLoader().load("img/logo.png");
+uniforms.texture.value     = new THREE.TextureLoader().load("img/initial.png", initialRender);
+</script>
