@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset='utf-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1'>
+        <title>Lines</title>
+        <style>
+            body { margin: 0; }
+        </style>
+        <script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+    </head>
+    <body>
+        <canvas id="hoge" height="100px" width="100%"></canvas>
+        <div id="app">
+            <input type='range' min='0' max='20' step='any' v-model.number='line_width_mu' />
+            <input type='range' min='0' max='1000' step='any' v-model.number='line_length_mu' />
+            <input type='range' min='0' max='50' step='any' v-model.number='p_lines_max' />
+            <input type='color' v-model='color' />
+            <button v-on:click="clear">clear</button>
+        </div>
+        <script>
+            var c = document.getElementById("hoge");
+            var ctx = c.getContext("2d");
+
+            c.width  = window.innerWidth;
+            c.height = 100;
+            
+            function rand_uniform() {
+                return Math.random();
+            }
+
+            function rand_normal(mu, sigma) {
+                // Box-Muller
+                let x = rand_uniform();
+                let y = rand_uniform();
+                if(x === 0) return rand_normal(mu, sigma);
+                return Math.sqrt(-2.0*Math.log(x))*Math.cos(2.0*Math.PI*y)*sigma+mu;
+            }
+
+            var app = new Vue({
+                el: "#app",
+                data: {
+                    lines: [], 
+                    p_lines_max: 0,
+                    line_width_mu: 0,
+                    line_width_std: 0,
+                    line_length_mu: 0,
+                    line_length_std: 0,
+                    color: "",
+                },
+                computed: {
+                    lines_max: function() {
+                        return this.p_lines_max*c.width/100;
+                    },
+                    line_deg: function() {
+                        return Math.exp(2.0/this.lines_max*Math.log(0.1));
+                    },
+                },
+                mounted: function() {
+                    this.p_lines_max = 25;
+
+                    //this.lines_max = this.p_lines_max*c.width/100;
+                    this.line_width_mu = 5;
+                    this.line_width_std = this.line_width_mu*0.1;
+                    this.line_length_mu = 300;
+                    this.line_length_std = this.line_length_mu*0.1;
+                    //this.line_deg = Math.exp(2.0/this.lines_max*Math.log(0.1));
+                    window.requestAnimationFrame(this.render);
+                },
+                methods: {
+                    clear: function() {
+                        this.lines = [];
+                    },
+                    render: function() {
+                        // clear canvas
+                        ctx.clearRect(0, 0, c.width, c.height);
+
+                        // add new line
+                        let cx = rand_uniform()*c.width;
+                        let cy = rand_uniform()*c.height;
+                        let theta = rand_uniform()*2.0*Math.PI;
+                        let l = rand_normal(this.line_length_mu, this.line_width_std);
+                        let dx = l*0.5*Math.cos(theta);
+                        let dy = l*0.5*Math.sin(theta);
+                        this.lines.push({
+                            sx: cx-dx,
+                            sy: cy-dy,
+                            tx: cx+dx,
+                            ty: cy+dy,
+                            w: rand_normal(this.line_width_mu, this.line_width_std),
+                            b: 1.0,
+                        });
+
+                        // remove line
+                        if(this.lines.length > this.lines_max){
+                            this.lines.shift();
+                        }
+
+                        // draw lines
+                        for(let line of this.lines){
+                            this.drawLine(line.sx, line.sy, line.tx, line.ty, line.w, line.b);
+                            line.b *= this.line_deg;
+                        }
+
+                        // draw gradient
+                        //let grad = ctx.createLinearGradient(0, 0, 0, c.height);
+                        //grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+                        //grad.addColorStop(1, 'rgba(255, 255, 255, 1)');
+                        //ctx.fillStyle = grad;
+                        //ctx.fillRect(0, 0, c.width, c.height);
+
+                        // frame request
+                        //setTimeout(function(f){
+                            window.requestAnimationFrame(this.render);
+                        //}(this.render), 1000);
+                    },
+                    drawLine: function(sx, sy, tx, ty, w, b) {
+                        //ctx.strokeStyle = 'rgba(0, 91, 148, '+b+')'
+                        ctx.strokeStyle = 'rgba(5, 45, 93, '+b+')'
+                        ctx.lineWidth = w;
+                        ctx.beginPath();
+                        ctx.moveTo(sx, sy);
+                        ctx.lineTo(tx, ty);
+                        ctx.stroke(); 
+                    }
+                },
+            });
+        </script>
+    </body>
+</html>
