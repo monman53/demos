@@ -1,31 +1,127 @@
 <meta charset='UTF-8'>
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<!--<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>-->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
 <div id='vue-wrap'>
     <wrap></wrap>
 </div>
+<style>
+body {
+    margin: 0;
+}
+</style>
 <script>
 Vue.component('wrap', {
     template: `
-    <svg viewBox='-50 -50 1100 1100' width='1000'>
-        <tree-item :tree='tree'></tree-item>
-    </svg>
+    <div>
+        <svg
+            :viewBox='viewBox'
+            :width='width'
+            @mousemove='mouseMove'
+        >
+            <tree-item :tree='tree' :f='f'></tree-item>
+
+            <g
+                v-if='f.red'
+            >
+                <circle
+                    :cx='mouseX'
+                    :cy='mouseY'
+                    :r='ar'
+                    stroke='red'
+                    fill='#F003'
+                    pointer-events='none'
+                ></circle>
+                <circle
+                    :cx='ap.x'
+                    :cy='ap.y'
+                    r='4'
+                    fill='red'
+                    pointer-events='none'
+                ></circle>
+            </g>
+
+            <g
+                v-if='f.cyan'
+            >
+                <circle
+                    :cx='mouseX'
+                    :cy='mouseY'
+                    :r='br'
+                    stroke='#0fff'
+                    fill='#0ff3'
+                    pointer-events='none'
+                ></circle>
+                <circle
+                    :cx='bp.x'
+                    :cy='bp.y'
+                    :r='4'
+                    fill='#0fff'
+                    pointer-events='none'
+                ></circle>
+                <line
+                    :x1='mouseX'
+                    :y1='mouseY'
+                    :x2='bp.x'
+                    :y2='bp.y'
+                    stroke='#0fff'
+                    pointer-events='none'
+                ></line>
+            </g>
+        </svg>
+        <div style='position: fixed;top: 0;left: 0;'>
+            <button v-on:click='init()'>Init</button><br>
+            <input type="checkbox" id="checkbox1" v-model="f.blue"><label for="checkbox1">網掛け</label><br>
+            <input type="checkbox" id="checkbox2" v-model="f.line"><label for="checkbox2">区切り線</label><br>
+            <input type="checkbox" id="checkbox3" v-model="f.red"><label for="checkbox3">探索円</label><br>
+            <input type="checkbox" id="checkbox4" v-model="f.cyan"><label for="checkbox4">最近接点</label><br>
+        </div>
+    </div>
     `,
     data: function() {
         return {
             tree: [], 
-            n: 1024,
+            n: 512,
+            width: 1000,
+            height: 1000,
+            mouseX: 0,
+            mouseY: 0,
+            ar: 0,
+            ap: {x: 0, y: 0},
+            bp: {x: 0, y: 0},
+            f: {
+                blue: true,
+                line: true,
+                red: true,
+                cyan: true,
+            },
         }
     },
     created: function() {
         this.init();
     }, 
+    computed: {
+        viewBox: function() {
+            return '0 0 '+this.width+' '+this.height;
+        },
+        br: function() {
+            var dx = this.bp.x - this.mouseX;
+            var dy = this.bp.y - this.mouseY;
+            return Math.sqrt(dx*dx+dy*dy);
+        },
+    },
     methods: {
         init: function() {
+            this.width = window.innerWidth;
+            this.height = window.innerHeight;
             var nodes = [];
-            for(var i=0;i<this.n;i++){
-                nodes.push({x: Math.random()*1000, y: Math.random()*1000});
+            while(nodes.length < this.n){
+                var x = Math.random()*Math.max(this.width, this.height);
+                var y = Math.random()*Math.max(this.width, this.height);
+                if(x < this.width && y < this.height){
+                    nodes.push({x: x, y: y});
+                }
             }
-            this.tree = this.createTree(nodes, 0, 0, 0, 1000, 1000);
+            this.tree = this.createTree(nodes, 0, 0, 0, this.width, this.height);
         },
         createTree: function(nodes, d, sx, sy, tx, ty) {
             var m = nodes.length;
@@ -73,9 +169,65 @@ Vue.component('wrap', {
                 b: b.length == 0 ? null : this.createTree(b, d+1, nsx, nsy, tx, ty),
             };
         },
-        solve: function() {
+        mouseMove: function(e) {
+            this.mouseX = e.clientX;
+            this.mouseY = e.clientY;
+            this.ap = this.find1(this.tree, this.mouseX, this.mouseY);
+            var dx = this.ap.x - this.mouseX;
+            var dy = this.ap.y - this.mouseY;
+            this.ar = Math.sqrt(dx*dx+dy*dy);
+            this.bp = this.find2(this.tree, this.mouseX, this.mouseY, this.ar);
         },
-        select: function() {
+        find1: function(tree, x, y) {
+            if(tree.a == null && tree.b == null){
+                return {x: tree.x, y: tree.y};
+            }
+            if(tree.a == null){
+                return this.find1(tree.b, x, y);
+            }
+            if(tree.b == null){
+                return this.find1(tree.a, x, y);
+            }
+            if(tree.d%2 == 0){
+                if(x < tree.x){
+                    return this.find1(tree.a, x, y);
+                }else{
+                    return this.find1(tree.b, x, y);
+                }
+            }else{
+                if(y < tree.y){
+                    return this.find1(tree.a, x, y);
+                }else{
+                    return this.find1(tree.b, x, y);
+                }
+            }
+        },
+        find2: function(tree, x, y, r) {
+            var res = {x: tree.x, y: tree.y};
+            var v = [];
+            if(tree.a != null && this.intersectCR(x, y, r, tree.a.sx, tree.a.sy, tree.a.tx, tree.a.ty)){
+                v.push(this.find2(tree.a, x, y, r));
+            }
+            if(tree.b != null && this.intersectCR(x, y, r, tree.b.sx, tree.b.sy, tree.b.tx, tree.b.ty)){
+                v.push(this.find2(tree.b, x, y, r));
+            }
+            for(var p of v){
+                if((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < (res.x-x)*(res.x-x)+(res.y-y)*(res.y-y)){
+                    res = p;
+                }
+            }
+            return res;
+        },
+        intersectCR: function(cx, cy, r, sx, sy, tx, ty) {
+            return (sx-r < cx && cx < tx+r && sy < cy && cy < ty) ||
+                   (sx < cx && cx < tx && sy-r < cy && cy < sy+r) ||
+                   this.intersectCC(cx, cy, r, sx, sy, r) || this.intersectCC(cx, cy, r, tx, sy, r) ||
+                   this.intersectCC(cx, cy, r, sx, ty, r) || this.intersectCC(cx, cy, r, tx, ty, r);
+        },
+        intersectCC: function(c1x, c1y, r1, c2x, c2y, r2) {
+            var dx = c1x - c2x;
+            var dy = c1y - c2y;
+            return dx*dx + dx*dy < (r1+r2)*(r1+r2);
         }
     }
 });
@@ -89,7 +241,7 @@ Vue.component('tree-item', {
         <circle
             :cx='tree.x'
             :cy='tree.y'
-            r='4'
+            r='3'
             :fill='circle_fill'
             :stroke='circle_stroke'
         ></circle>
@@ -98,7 +250,7 @@ Vue.component('tree-item', {
             :y1='tree.nsy'
             :x2='tree.ntx'
             :y2='tree.nty'
-            stroke-width='1'
+            :stroke-width='stroke_width'
             :stroke='line_stroke'>
         </line>
         <rect
@@ -108,11 +260,11 @@ Vue.component('tree-item', {
             :height='tree.ty-tree.sy'
             :fill='rect_fill'
         ></rect>
-        <tree-item v-if='tree.a != null' :tree='tree.a'></tree-item>
-        <tree-item v-if='tree.b != null' :tree='tree.b'></tree-item>
+        <tree-item v-if='tree.a != null' :tree='tree.a' :f='f'></tree-item>
+        <tree-item v-if='tree.b != null' :tree='tree.b' :f='f'></tree-item>
     </g>
     `,
-    props: ['tree'],
+    props: ['tree', 'f'],
     data: function() {
         return {
             active: false,
@@ -122,7 +274,7 @@ Vue.component('tree-item', {
     },
     computed: {
         rect_fill: function() {
-            return this.active ? 'rgba(0%, 0%, 100%, 0.1)' : 'rgba(0%, 0%, 0%, 0)';
+            return this.active && this.f.blue ? 'rgba(0%, 0%, 100%, 0.1)' : 'rgba(0%, 0%, 0%, 0)';
         },
         circle_fill: function() {
             return this.active ? 'black' : 'gray';
@@ -131,7 +283,13 @@ Vue.component('tree-item', {
             return '#0000';
         },
         line_stroke: function() {
+            if(!this.f.line){
+                return '#0000';
+            }
             return this.active ? 'black' : 'gray';
+        },
+        stroke_width: function() {
+            return Math.exp(-this.tree.d/5)*2;
         },
     },
     methods: {
