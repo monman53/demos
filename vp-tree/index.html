@@ -1,0 +1,36 @@
+<meta charset='UTF-8'>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<div id='vue-wrap'>
+    <svg
+        :viewBox='viewBox'
+        @mousemove='mouseMove'
+        >
+    </svg>
+</div>
+<script>
+new Vue({
+    el: "#vue-wrap",
+    data: {
+        tree: {},
+        nodeMax: 512,
+        width:  1000,
+        height: 1000, 
+        mouse: {x: 0, y: 0},
+    },
+    computed: {
+        viewBox: function() {
+            return '0 0 '+this.width+' '+this.height;
+        },
+    },
+    mounted: function() {
+        this.width  = window.innerWidth;
+        this.height = window.innerHeight;
+    },
+    methods: {
+        mouseMove: function(e) {
+            this.mouse.x = e.clientX;
+            this.mouse.y = e.clientY;
+        },
+    }
+});
+</script>
