@@ -72,7 +72,7 @@ Vue.component('wrap', {
             <button v-on:click='init()'>Init</button><br>
             <input type="checkbox" id="checkbox1" v-model="f.blue"><label for="checkbox1">網掛け</label><br>
             <input type="checkbox" id="checkbox2" v-model="f.line"><label for="checkbox2">区切り線</label><br>
-            <input type="checkbox" id="checkbox3" v-model="f.red"><label for="checkbox3">探索円</label><br>
+            <input type="checkbox" id="checkbox3" v-model="f.red" ><label for="checkbox3">探索円</label><br>
             <input type="checkbox" id="checkbox4" v-model="f.cyan"><label for="checkbox4">最近接点</label><br>
         </div>
     </div>
@@ -85,9 +85,10 @@ Vue.component('wrap', {
             height: 1000,
             mouseX: 0,
             mouseY: 0,
-            ar: 0,
             ap: {x: 0, y: 0},
+            ar: 0,
             bp: {x: 0, y: 0},
+            br: 0,
             f: {
                 blue: true,
                 line: true,
@@ -102,11 +103,6 @@ Vue.component('wrap', {
     computed: {
         viewBox: function() {
             return '0 0 '+this.width+' '+this.height;
-        },
-        br: function() {
-            var dx = this.bp.x - this.mouseX;
-            var dy = this.bp.y - this.mouseY;
-            return Math.sqrt(dx*dx+dy*dy);
         },
     },
     methods: {
@@ -142,25 +138,20 @@ Vue.component('wrap', {
             }
             var x = nodes[Math.floor(m/2)].x;
             var y = nodes[Math.floor(m/2)].y;
-            var nsx = 0;
-            var nsy = 0;
-            var ntx = 0;
-            var nty = 0;
+            var nsx = sx;
+            var nsy = sy;
+            var ntx = tx;
+            var nty = ty;
             if(d%2 == 0){
                 nsx = x;
-                nsy = sy;
                 ntx = x;
-                nty = ty;
             }else{
-                nsx = sx;
                 nsy = y;
-                ntx = tx;
                 nty = y;
             }
             return {
                 d: d,
-                x: x, 
-                y: y, 
+                x: x, y: y, 
                 sx: sx, sy: sy,
                 tx: tx, ty: ty,
                 nsx: nsx, nsy: nsy,
@@ -177,6 +168,9 @@ Vue.component('wrap', {
             var dy = this.ap.y - this.mouseY;
             this.ar = Math.sqrt(dx*dx+dy*dy);
             this.bp = this.find2(this.tree, this.mouseX, this.mouseY, this.ar);
+            var dx = this.bp.x - this.mouseX;
+            var dy = this.bp.y - this.mouseY;
+            this.br = Math.sqrt(dx*dx+dy*dy);
         },
         find1: function(tree, x, y) {
             if(tree.a == null && tree.b == null){
@@ -251,8 +245,8 @@ Vue.component('tree-item', {
             :x2='tree.ntx'
             :y2='tree.nty'
             :stroke-width='stroke_width'
-            :stroke='line_stroke'>
-        </line>
+            :stroke='line_stroke'
+        ></line>
         <rect
             :x='tree.sx'
             :y='tree.sy'
