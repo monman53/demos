@@ -1,0 +1,207 @@
+<canvas id='lifegame'></canvas>
+
+<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
+
+<style>
+body {
+    margin: 0;
+}
+canvas {
+    image-rendering:optimizeSpeed;             /* Legal fallback */
+    image-rendering:-moz-crisp-edges;          /* Firefox        */
+    image-rendering:-o-crisp-edges;            /* Opera          */
+    image-rendering:-webkit-optimize-contrast; /* Safari         */
+    image-rendering:optimize-contrast;         /* CSS3 Proposed  */
+    image-rendering:crisp-edges;               /* CSS4 Proposed  */
+    image-rendering:pixelated;                 /* CSS4 Proposed  */
+    -ms-interpolation-mode:nearest-neighbor;   /* IE8+           */
+}
+</style>
+
+<script type="x-shader/x-fragment" id="initialShader">
+uniform int width;
+float random(vec2 p) {
+   return fract(sin(dot(p.xy, vec2(12.9898,78.233)))* 43758.5453123);
+}
+void main() {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+
+    if(gl_FragCoord.y < 1.0){
+        float center = float(width/2);
+        if(center < gl_FragCoord.x && gl_FragCoord.x < center+1.0) {
+            gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+        }
+    }
+}
+</script>
+
+<script type="x-shader/x-fragment" id="computeShader">
+uniform vec2 d;
+uniform float threshold;
+uniform sampler2D texture;
+void main() {
+    vec2 p = gl_FragCoord.xy*d;
+
+    float xm = p.x - d.x; xm = xm <  0. ? xm + 1. : xm;
+    float xp = p.x + d.x; xp = xp >= 1. ? xp - 1. : xp;
+    float ym = p.y - d.y; ym = ym <  0. ? ym + 1. : ym;
+    float yp = p.y + d.y; //yp = yp >= 1. ? yp - 1. : yp;
+
+    if(p.y > threshold){
+        // sky area
+
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+
+        // lifegame
+        int count = 0;
+        if(texture2D(texture, vec2(xp,  p.y)).r > 0.5) count++;
+        if(texture2D(texture, vec2(xp,  yp )).r > 0.5) count++;
+        if(texture2D(texture, vec2(p.x, yp )).r > 0.5) count++;
+        if(texture2D(texture, vec2(xm,  yp )).r > 0.5) count++;
+        if(texture2D(texture, vec2(xm,  p.y)).r > 0.5) count++;
+        if(texture2D(texture, vec2(xm,  ym )).r > 0.5) count++;
+        if(texture2D(texture, vec2(p.x, ym )).r > 0.5) count++;
+        if(texture2D(texture, vec2(xp,  ym )).r > 0.5) count++;
+
+        float effect = texture2D(texture, p).g*0.99;
+        if(texture2D(texture, p).r > 0.5) effect = 1.0;
+
+        if(count < 2 || count > 3){
+            gl_FragColor = vec4(0, effect, 0, 0);
+        }else{
+            if(texture2D(texture, p).r < 0.5){
+                if(count == 3){
+                    gl_FragColor = vec4(1, 0, 0, 0);
+                }else{
+                    gl_FragColor = vec4(0, effect, 0, 0);
+                }
+            }else{
+                gl_FragColor = vec4(1, 0, 0, 0);
+            }
+        }
+    }else{
+        // ground area
+
+        if(gl_FragCoord.y < 1.0){
+            // rule 30
+            bool l = false;
+            bool c = false;
+            bool r = false;
+            if(texture2D(texture, vec2(xm,  p.y)).r > 0.5) l = true;
+            if(texture2D(texture, vec2(p.x, p.y)).r > 0.5) c = true;
+            if(texture2D(texture, vec2(xp,  p.y)).r > 0.5) r = true;
+
+            if((l && !c && !r) || (!l && c && r) || (!l && c && !r) || (!l && !c && r)){
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+            }else{
+                gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+            }
+        }else{
+            gl_FragColor = texture2D(texture, vec2(p.x, ym));
+        }
+    }
+
+
+
+
+}
+</script>
+
+<script type="x-shader/x-fragment" id="screenShader">
+uniform vec2 d;
+uniform sampler2D texture;
+void main() {
+    float effect = texture2D(texture, gl_FragCoord.xy*d).g;
+    if(texture2D(texture, gl_FragCoord.xy*d).r < 0.5){
+        gl_FragColor = vec4(0, 0, effect, 1);    // dead
+    }else{
+        gl_FragColor = vec4(1, 1, 1, 1);    // alive
+    }
+}
+</script>
+
+<script>
+var cellSize    = 4;
+var speed       = 8;    // msec/frame (also depend on cellsize)
+var threshold   = 0.2;  // ground area ratio [0.0, 1.0) 
+
+var canvas  = document.getElementById('lifegame');
+canvas.width  = window.innerWidth/cellSize;
+canvas.height = window.innerHeight/cellSize;
+canvas.style.width  = window.innerWidth;
+canvas.style.height = window.innerHeight;
+
+var renderer = new THREE.WebGLRenderer({canvas: canvas});
+var scene    = new THREE.Scene();
+var camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
+
+camera.position.z = 1;
+scene.add(camera)
+
+var uniforms = {
+    d:          {type: 'v2',    value: new THREE.Vector2(1.0/canvas.width, 1.0/canvas.height)},
+    width:      {type: 'int',   value: canvas.width},
+    threshold:  {type: 'float', value: threshold},
+    texture:    {type: 't',     value: undefined},
+};
+
+// prepare shaders
+var initialShaderMaterial = new THREE.ShaderMaterial({
+    fragmentShader: document.getElementById('initialShader').textContent,
+    uniforms: uniforms,
+});
+var computeShaderMaterial = new THREE.ShaderMaterial({
+    fragmentShader: document.getElementById('computeShader').textContent,
+    uniforms: uniforms,
+});
+var screenShaderMaterial = new THREE.ShaderMaterial({
+    fragmentShader: document.getElementById('screenShader').textContent,
+    uniforms: uniforms,
+});
+
+// set plane
+var plane = new THREE.PlaneGeometry(1.0, 1.0);
+var mesh = new THREE.Mesh(plane, screenShaderMaterial);
+scene.add(mesh);
+
+// prepare two texture
+var texture = [];
+for(var i=0;i<2;i++){
+    texture.push(new THREE.WebGLRenderTarget(
+        canvas.width,
+        canvas.height,
+    ));
+}
+
+// initial rendering
+mesh.material = initialShaderMaterial;
+renderer.setRenderTarget(texture[0]);
+renderer.render(scene, camera);
+
+// using ping-pong buffering
+uniforms.texture.value = texture[0].texture;
+var pingpong = 0;
+
+var draw = function() {
+    // texture rendering
+    mesh.material = computeShaderMaterial;
+    renderer.setRenderTarget(texture[1-pingpong]);
+    renderer.render(scene, camera);
+    uniforms.texture.value = texture[1-pingpong].texture;
+    pingpong = 1 - pingpong;
+
+    // screen rendering
+    mesh.material = screenShaderMaterial;
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+
+    // wait 20ms
+    window.setTimeout(function() {
+        window.requestAnimationFrame(draw);
+    }, speed);
+}
+
+// start animation
+draw();
+</script>
+
