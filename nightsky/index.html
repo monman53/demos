@@ -63,8 +63,8 @@ void main() {
         if(texture2D(texture, vec2(p.x, ym )).r > 0.5) count++;
         if(texture2D(texture, vec2(xp,  ym )).r > 0.5) count++;
 
-        float effect = texture2D(texture, p).g*0.99;
-        if(texture2D(texture, p).r > 0.5) effect = 1.0;
+        float effect = texture2D(texture, p).g*0.96;
+        if(texture2D(texture, p).r > 0.5) effect = 0.9;
 
         if(count < 2 || count > 3){
             gl_FragColor = vec4(0, effect, 0, 0);
@@ -168,6 +168,7 @@ void main() {
     }else{
         // sky
         float grad = 1.-(1.-p.y)/(1.-threshold);
+        // float linear = grad;
         grad = -log(grad+0.01);
         if(texture2D(texture, p).r < 0.5){
             // dead
@@ -175,14 +176,14 @@ void main() {
             gl_FragColor = vec4(hsl2rgb(vec3(220./360., 80./100., grad*0.2)), 1);
         }else{
             // alive
-            gl_FragColor = vec4(hsl2rgb(vec3(250./360., 80./100., 1.0)), 1);
+            gl_FragColor = vec4(hsl2rgb(vec3(220./360., 80./100., 1.0)), 1);
         }
     }
 }
 </script>
 
 <script>
-var cellSize    = 1;
+var cellSize    = 4;
 var speed       = 8;    // msec/frame (also depend on cellsize)
 var threshold   = 0.2;  // ground area ratio [0.0, 1.0) 
 
