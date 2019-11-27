@@ -1,100 +1,79 @@
-<canvas id='canvas'></canvas>
-
 <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
-
 <style>
 body {
     margin: 0;
 }
 </style>
 
-<script type="x-shader/x-fragment" id="fs">
-uniform vec2 mouse;
-uniform vec2 size;
-uniform vec2 C;
+<meta charset="UTF-8">
 
-vec2 range = vec2(3.5, 2.5);
+<canvas id='canvas'></canvas>
+
+<script type="x-shader/x-fragment" id="fs">
+uniform vec2 size, range, mouse;
+uniform float r;
 
 float julia(vec2 z, vec2 c) {
     const int max_itr = 128;
-    float x = z.x;
-    float y = z.y;
+    vec2 nz;
     for(int i=0;i<max_itr;i++){
 
-        if(x*x + y*y > 4.){
-            float f_i       = float(i);
-            float f_max_itr = float(max_itr);
-            return f_i/f_max_itr;
+        if(dot(z, z) > 4.){
+            return float(i)/float(max_itr);
         }
 
-        float nx = x*x - y*y + c.x;
-        float ny = 2.*x*y + c.y;
+        nz.x = z.x*z.x - z.y*z.y + c.x;
+        nz.y = 2.*z.x*z.y + c.y;
 
-        x = nx;
-        y = ny;
+        // if(z == nz) return 1.0;
+
+        z = nz;
     }
     return 1.0;
 }
 
 void main() {
-    vec2 c, z;
-    vec4 color;
-    float dl;
+    vec2 z = (gl_FragCoord.xy - 0.5*size)*r;
+    vec2 c = (mouse - 0.5*size)*r*0.7;
 
-    if(size.x/size.y > range.x/range.y){
-        // wide
-        z = gl_FragCoord.xy / size.y * range.y;
-        z -= vec2(size.x / size.y * range.y, range.y) * 0.5;
-        c = (mouse - 0.5*size)/size.y * range.y * 0.5;
-        dl = range.y / size.y;
-    }else{
-        // narrow
-        z = gl_FragCoord.xy / size.x * range.x;
-        z -= vec2(range.x, size.y / size.x * range.x) * 0.5;
-        c = (mouse - 0.5*size)/size.y * range.x * 0.5;
-        dl = range.x / size.x;
-    }
-
-    const int h = 2;
-    const float f_h = float(h);
+    // antialiasing
+    float dl = r * 0.5; 
     float res = 0.;
-    dl /= f_h;
-    for(int i=0;i<h;i++){
-        for(int j=0;j<h;j++){
-            float f_i = float(i);
-            float f_j = float(j);
-            res += julia(z+vec2(f_i*dl, f_j*dl), c);
-        }
-    }
-    res /= f_h*f_h;
 
-    color = vec4(res, res, res, 1.);
+    res += julia(z+vec2(dl*0., dl*0.), c);
+    res += julia(z+vec2(dl*0., dl*1.), c);
+    res += julia(z+vec2(dl*1., dl*0.), c);
+    res += julia(z+vec2(dl*1., dl*1.), c);
 
-    gl_FragColor = color;
+    res *= 0.25;
+
+    // output
+    gl_FragColor = vec4(pow(res, 0.7));
 }
 </script>
 
 <script>
-var cellSize    = 1;
-var speed       = 8;    // msec/frame (also depend on cellsize)
-
 var canvas  = document.getElementById('canvas');
-canvas.width  = window.innerWidth/cellSize;
-canvas.height = window.innerHeight/cellSize;
-canvas.style.width  = window.innerWidth;
-canvas.style.height = window.innerHeight;
+canvas.width  = window.innerWidth;
+canvas.height = window.innerHeight;
 
+// prepare webgl with Three.js
 var renderer = new THREE.WebGLRenderer({canvas: canvas});
 var scene    = new THREE.Scene();
 var camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
-
 camera.position.z = 1;
 scene.add(camera)
 
+// uniforms for shader
+var sx = canvas.width; 
+var sy = canvas.height;
+var rx = 3.5;
+var ry = 2.5;
 var uniforms = {
-    size:   {type: 'v2',    value: new THREE.Vector2(canvas.width, canvas.height)},
-    C:      {type: 'v2',    value: new THREE.Vector2(-0.8, 0.156)},
-    mouse:  {type: 'v2',    value: new THREE.Vector2(0., 0.)}, 
+    size:   {type: 'v2',    value: new THREE.Vector2(sx, sy)},
+    mouse:  {type: 'v2',    value: new THREE.Vector2(sx*0.5, sy*0.5)}, 
+    range:  {type: 'v2',    value: new THREE.Vector2(rx, ry)},
+    r:      {type: 'float', value: sx*ry > rx*sy ? ry/sy : rx/sx}, 
 };
 
 // prepare shaders
@@ -108,24 +87,18 @@ var plane = new THREE.PlaneGeometry(1.0, 1.0);
 var mesh = new THREE.Mesh(plane, screenShaderMaterial);
 scene.add(mesh);
 
+
+// mouse listener
 function updateMousePosition(event) {
     uniforms.mouse.value.x = event.offsetX;
     uniforms.mouse.value.y = event.offsetY;
+    window.requestAnimationFrame(draw);
 }
-
 canvas.addEventListener("mousemove", updateMousePosition, false);
 
 var draw = function() {
-    // screen rendering
     renderer.render(scene, camera);
-
-    // wait speed [msec]
-    window.setTimeout(function() {
-        window.requestAnimationFrame(draw);
-    }, speed);
 }
-
 // start animation
 draw();
 </script>
-
