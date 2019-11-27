@@ -1,0 +1,106 @@
+<canvas id='lifegame'></canvas>
+
+<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
+
+<style>
+body {
+    margin: 0;
+}
+</style>
+
+<script type="x-shader/x-fragment" id="fs">
+uniform vec2 size;
+uniform vec2 C;
+
+vec2 range = vec2(4., 2.);
+
+float julia(vec2 z) {
+    const int max_itr = 200;
+    float x = z.x;
+    float y = z.y;
+    for(int i=0;i<max_itr;i++){
+
+        if(x*x + y*y > 4.){
+            float f_i       = float(i);
+            float f_max_itr = float(max_itr);
+            return f_i/f_max_itr;
+        }
+
+        float nx = x*x - y*y + C.x;
+        float ny = 2.*x*y + C.y;
+
+        x = nx;
+        y = ny;
+    }
+    return 1.0;
+}
+
+void main() {
+    vec2 z;
+    vec4 color;
+
+    if(size.x/size.y > range.x/range.y){
+        // wide
+        z = gl_FragCoord.xy / size.y * range.y;
+        z -= vec2(size.x / size.y * range.y, range.y) * 0.5;
+    }else{
+        // narrow
+        z = gl_FragCoord.xy / size.x * range.x;
+        z -= vec2(range.x, size.y / size.x * range.x) * 0.5;
+    }
+
+    float res = julia(z);
+
+    color = vec4(res, res, res, 1.);
+
+    gl_FragColor = color;
+}
+</script>
+
+<script>
+var cellSize    = 1;
+var speed       = 8;    // msec/frame (also depend on cellsize)
+
+var canvas  = document.getElementById('lifegame');
+canvas.width  = window.innerWidth/cellSize;
+canvas.height = window.innerHeight/cellSize;
+canvas.style.width  = window.innerWidth;
+canvas.style.height = window.innerHeight;
+
+var renderer = new THREE.WebGLRenderer({canvas: canvas});
+var scene    = new THREE.Scene();
+var camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
+
+camera.position.z = 1;
+scene.add(camera)
+
+var uniforms = {
+    size:   {type: 'v2',    value: new THREE.Vector2(canvas.width, canvas.height)},
+    C:      {type: 'v2',    value: new THREE.Vector2(-0.8, 0.156)},
+};
+
+// prepare shaders
+var screenShaderMaterial = new THREE.ShaderMaterial({
+    fragmentShader: document.getElementById('fs').textContent,
+    uniforms: uniforms,
+});
+
+// set plane
+var plane = new THREE.PlaneGeometry(1.0, 1.0);
+var mesh = new THREE.Mesh(plane, screenShaderMaterial);
+scene.add(mesh);
+
+var draw = function() {
+    // screen rendering
+    renderer.render(scene, camera);
+
+    // wait speed [msec]
+    window.setTimeout(function() {
+        window.requestAnimationFrame(draw);
+    }, speed);
+}
+
+// start animation
+draw();
+</script>
+

@@ -7,14 +7,14 @@ body {
     margin: 0;
 }
 canvas {
-    image-rendering:optimizeSpeed;             /* Legal fallback */
-    image-rendering:-moz-crisp-edges;          /* Firefox        */
-    image-rendering:-o-crisp-edges;            /* Opera          */
-    image-rendering:-webkit-optimize-contrast; /* Safari         */
-    image-rendering:optimize-contrast;         /* CSS3 Proposed  */
-    image-rendering:crisp-edges;               /* CSS4 Proposed  */
-    image-rendering:pixelated;                 /* CSS4 Proposed  */
-    -ms-interpolation-mode:nearest-neighbor;   /* IE8+           */
+    image-rendering: optimizeSpeed;             /* Legal fallback */
+    image-rendering: -moz-crisp-edges;          /* Firefox        */
+    image-rendering: -o-crisp-edges;            /* Opera          */
+    image-rendering: -webkit-optimize-contrast; /* Safari         */
+    image-rendering: optimize-contrast;         /* CSS3 Proposed  */
+    image-rendering: crisp-edges;               /* CSS4 Proposed  */
+    image-rendering: pixelated;                 /* CSS4 Proposed  */
+    -ms-interpolation-mode: nearest-neighbor;   /* IE8+           */
 }
 </style>
 
@@ -85,7 +85,6 @@ void main() {
         float effect = texture2D(texture, p).g*0.5;
 
         if(gl_FragCoord.y < 1.0){
-            // rule 30
             bool l = false;
             bool c = false;
             bool r = false;
@@ -93,7 +92,10 @@ void main() {
             if(texture2D(texture, vec2(p.x, p.y)).r > 0.5) c = true;
             if(texture2D(texture, vec2(xp,  p.y)).r > 0.5) r = true;
 
+            // rule 30
             if((l && !c && !r) || (!l && c && r) || (!l && c && !r) || (!l && !c && r)){
+            // rule 110
+            // if((l && c && !r) || (l && !c && r) || (!l && c && r) || (!l && c && !r) || (!l && !c && r)){
                 gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
             }else{
                 if(c){
@@ -160,10 +162,10 @@ void main() {
         grad = -log(grad+0.01);
         if(texture2D(texture, p).r < 0.5){
             // dead
-            gl_FragColor = vec4(hsl2rgb(vec3(25./360., 70./100., grad*0.1)), 1);
+            gl_FragColor = vec4(hsl2rgb(vec3(25./360., 60./100., grad*0.1)), 1);
         }else{
             // alive
-            gl_FragColor = vec4(hsl2rgb(vec3(15./360., 80./100., grad*0.25)), 1);
+            gl_FragColor = vec4(hsl2rgb(vec3(15./360., 60./100., grad*0.25)), 1);
         }
     }else{
         // sky
