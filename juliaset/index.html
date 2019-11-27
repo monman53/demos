@@ -9,18 +9,25 @@ body {
 <meta charset="UTF-8">
 
 <div id='app'>
-    <canvas id='canvas' v-on:mousemove='mouseMove'></canvas>
+    <canvas id='canvas' v-on:mousemove='mouseMove' v-on:mousedown='mouseDown'></canvas>
+    <div style='position: fixed;top: 0;left: 0; color: white;'>
+        <input type='range' v-model='rx'      min='0.1' max='4' step='0.1'> rx {{rx}}<br>
+        <input type='range' v-model='ry'      min='0.1' max='4' step='0.1'> ry {{ry}}<br>
+        <input type='range' v-model='max_itr' min='1' max='1024' step='1'> max_itr {{max_itr}}<br>
+        <input type='range' v-model='mouseRange' min='0.1' max='2' step='0.1'> mouseRange {{mouseRange}}<br>
+    </div>
 </div>
 
 <script type="x-shader/x-fragment" id="fs">
-uniform vec2 size, range, mouse;
-uniform float r;
+uniform vec2 size, mouse;
+uniform float r, mouseRange;
+uniform int max_itr;
 
 float julia(vec2 z, vec2 c) {
-    const int max_itr = 128;
+    // const int max_itr = 128;
     vec2 nz;
-    for(int i=0;i<max_itr;i++){
-
+    for(int i=0;i<1024;i++){
+        if(i >= max_itr) break;
         if(dot(z, z) > 4.){
             return float(i)/float(max_itr);
         }
@@ -37,7 +44,7 @@ float julia(vec2 z, vec2 c) {
 
 void main() {
     vec2 z = (gl_FragCoord.xy - 0.5*size)*r;
-    vec2 c = (mouse - 0.5*size)*r*0.7;
+    vec2 c = (mouse - 0.5*size)*r*mouseRange;
 
     // antialiasing
     float dl = r * 0.5; 
@@ -66,13 +73,35 @@ var app = new Vue({
         camera: null,
         sx: null,
         sy: null,
-        rx: null,
-        ry: null,
-        uniforms: null,
+        rx: 3.5,
+        ry: 2.5,
+        max_itr: 128,
+        mouseRange: 0.7,
+        uniforms: {
+        },
         screenShaderMaterial: null,
         plane: null,
         mesh: null,
+        mouse: true, 
     },
+    watch: {
+        rx: function() {
+            this.uniforms.r.value = this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx;
+            this.draw();
+        }, 
+        ry: function() {
+            this.uniforms.r.value = this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx;
+            this.draw();
+        },
+        max_itr: function() {
+            this.uniforms.max_itr.value = this.max_itr;
+            this.draw();
+        },
+        mouseRange: function() {
+            this.uniforms.mouseRange.value = this.mouseRange;
+            this.draw();
+        }
+    }, 
     mounted: function() {
         this.canvas  = document.getElementById('canvas');
         this.canvas.width  = window.innerWidth;
@@ -88,13 +117,13 @@ var app = new Vue({
         // uniforms for shader
         this.sx = this.canvas.width; 
         this.sy = this.canvas.height;
-        this.rx = 3.5;
-        this.ry = 2.5;
+
         this.uniforms = {
-            size:   {type: 'v2',    value: new THREE.Vector2(this.sx, this.sy)},
-            mouse:  {type: 'v2',    value: new THREE.Vector2(this.sx*0.5, this.sy*0.5)}, 
-            range:  {type: 'v2',    value: new THREE.Vector2(this.rx, this.ry)},
-            r:      {type: 'float', value: this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx}, 
+            size:       {type: 'v2',    value: new THREE.Vector2(this.sx, this.sy)},
+            mouse:      {type: 'v2',    value: new THREE.Vector2(this.sx*0.5, this.sy*0.5)}, 
+            r:          {type: 'float', value: this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx}, 
+            max_itr:    {type: 'int',   value: this.max_itr}, 
+            mouseRange: {type: 'float', value: this.mouseRange}, 
         };
 
         // prepare shaders
@@ -115,10 +144,15 @@ var app = new Vue({
             this.renderer.render(this.scene, this.camera);
         },
         mouseMove: function(event) {
-            this.uniforms.mouse.value.x = event.offsetX;
-            this.uniforms.mouse.value.y = event.offsetY;
-            window.requestAnimationFrame(this.draw);
+            if(this.mouse){
+                this.uniforms.mouse.value.x = event.offsetX;
+                this.uniforms.mouse.value.y = event.offsetY;
+                window.requestAnimationFrame(this.draw);
+            }
         }, 
+        mouseDown: function() {
+            this.mouse = !this.mouse;
+        },
     }, 
 });
 </script>
