@@ -1,3 +1,4 @@
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
 <style>
 body {
@@ -7,7 +8,9 @@ body {
 
 <meta charset="UTF-8">
 
-<canvas id='canvas'></canvas>
+<div id='app'>
+    <canvas id='canvas' v-on:mousemove='mouseMove'></canvas>
+</div>
 
 <script type="x-shader/x-fragment" id="fs">
 uniform vec2 size, range, mouse;
@@ -53,52 +56,69 @@ void main() {
 </script>
 
 <script>
-var canvas  = document.getElementById('canvas');
-canvas.width  = window.innerWidth;
-canvas.height = window.innerHeight;
 
-// prepare webgl with Three.js
-var renderer = new THREE.WebGLRenderer({canvas: canvas});
-var scene    = new THREE.Scene();
-var camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
-camera.position.z = 1;
-scene.add(camera)
+var app = new Vue({
+    el: "#app",
+    data: {
+        canvas: null,
+        renderer: null,
+        scene: null,
+        camera: null,
+        sx: null,
+        sy: null,
+        rx: null,
+        ry: null,
+        uniforms: null,
+        screenShaderMaterial: null,
+        plane: null,
+        mesh: null,
+    },
+    mounted: function() {
+        this.canvas  = document.getElementById('canvas');
+        this.canvas.width  = window.innerWidth;
+        this.canvas.height = window.innerHeight;
 
-// uniforms for shader
-var sx = canvas.width; 
-var sy = canvas.height;
-var rx = 3.5;
-var ry = 2.5;
-var uniforms = {
-    size:   {type: 'v2',    value: new THREE.Vector2(sx, sy)},
-    mouse:  {type: 'v2',    value: new THREE.Vector2(sx*0.5, sy*0.5)}, 
-    range:  {type: 'v2',    value: new THREE.Vector2(rx, ry)},
-    r:      {type: 'float', value: sx*ry > rx*sy ? ry/sy : rx/sx}, 
-};
+        // prepare webgl with Three.js
+        this.renderer = new THREE.WebGLRenderer({canvas: this.canvas});
+        this.scene    = new THREE.Scene();
+        this.camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
+        this.camera.position.z = 1;
+        this.scene.add(this.camera)
 
-// prepare shaders
-var screenShaderMaterial = new THREE.ShaderMaterial({
-    fragmentShader: document.getElementById('fs').textContent,
-    uniforms: uniforms,
+        // uniforms for shader
+        this.sx = this.canvas.width; 
+        this.sy = this.canvas.height;
+        this.rx = 3.5;
+        this.ry = 2.5;
+        this.uniforms = {
+            size:   {type: 'v2',    value: new THREE.Vector2(this.sx, this.sy)},
+            mouse:  {type: 'v2',    value: new THREE.Vector2(this.sx*0.5, this.sy*0.5)}, 
+            range:  {type: 'v2',    value: new THREE.Vector2(this.rx, this.ry)},
+            r:      {type: 'float', value: this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx}, 
+        };
+
+        // prepare shaders
+        this.screenShaderMaterial = new THREE.ShaderMaterial({
+            fragmentShader: document.getElementById('fs').textContent,
+            uniforms: this.uniforms,
+        });
+
+        // set plane
+        this.plane = new THREE.PlaneGeometry(1.0, 1.0);
+        this.mesh = new THREE.Mesh(this.plane, this.screenShaderMaterial);
+        this.scene.add(this.mesh);
+
+        this.draw();
+    },
+    methods: {
+        draw: function() {
+            this.renderer.render(this.scene, this.camera);
+        },
+        mouseMove: function(event) {
+            this.uniforms.mouse.value.x = event.offsetX;
+            this.uniforms.mouse.value.y = event.offsetY;
+            window.requestAnimationFrame(this.draw);
+        }, 
+    }, 
 });
-
-// set plane
-var plane = new THREE.PlaneGeometry(1.0, 1.0);
-var mesh = new THREE.Mesh(plane, screenShaderMaterial);
-scene.add(mesh);
-
-
-// mouse listener
-function updateMousePosition(event) {
-    uniforms.mouse.value.x = event.offsetX;
-    uniforms.mouse.value.y = event.offsetY;
-    window.requestAnimationFrame(draw);
-}
-canvas.addEventListener("mousemove", updateMousePosition, false);
-
-var draw = function() {
-    renderer.render(scene, camera);
-}
-// start animation
-draw();
 </script>
