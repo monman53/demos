@@ -1,10 +1,23 @@
 <meta charset='UTF-8'>
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<!--<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>-->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>
+<style>
+body {
+    margin: 0;
+}
+</style>
 <div id='vue-wrap'>
     <svg
         :viewBox='viewBox'
+        :width='rect.width'
+        :height='rect.height'
         @mousemove='mouseMove'
         >
+        <mask id='m0'>
+            <rect x='0' y='0' :width='rect.width' :height='rect.height' fill='white'></rect>
+        </mask>
+        <tree-item :tree='tree' :rect='rect'>
+        </tree-item>
     </svg>
 </div>
 <script>
@@ -12,25 +25,193 @@ new Vue({
     el: "#vue-wrap",
     data: {
         tree: {},
-        nodeMax: 512,
-        width:  1000,
-        height: 1000, 
+        nodeMax: 32,
+        rect: {
+            width:  1000,
+            height: 1000, 
+        },
         mouse: {x: 0, y: 0},
     },
     computed: {
         viewBox: function() {
-            return '0 0 '+this.width+' '+this.height;
+            return '0 0 '+this.rect.width+' '+this.rect.height;
         },
     },
     mounted: function() {
-        this.width  = window.innerWidth;
-        this.height = window.innerHeight;
+        this.rect.width  = window.innerWidth;
+        this.rect.height = window.innerHeight;
+        this.init();
     },
     methods: {
+        init: function() {
+            var nodes = [];
+            while(nodes.length < this.nodeMax){
+                var x = Math.random()*Math.max(this.rect.width, this.rect.height);
+                var y = Math.random()*Math.max(this.rect.width, this.rect.height);
+                if(x < this.rect.width && y < this.rect.height){
+                    nodes.push({x: x, y: y});
+                }
+            }
+            this.tree = this.createTree(nodes, 0, "m0");
+        },
+        createTree: function(nodes, d, mask_id) {
+            var n = nodes.length;
+            if(n == 1){
+                return {leaf: true, x: nodes[0].x, y: nodes[0].y, d: d};
+            }
+            var k = Math.floor(Math.random()*n);
+            var cx = nodes[k].x;
+            var cy = nodes[k].y;
+            var c = {x: cx, y: cy};
+            nodes.sort(function(a, b) {
+                var dax = c.x - a.x;
+                var day = c.y - a.y;
+                var dbx = c.x - b.x;
+                var dby = c.y - b.y;
+                return dax*dax+day*day < dbx*dbx+dby*dby;
+            });
+            var m = Math.floor(n/2);
+            var dax = c.x - nodes[m].x;
+            var day = c.y - nodes[m].y;
+            var dbx = c.x - nodes[m-1].x;
+            var dby = c.y - nodes[m-1].y;
+            var r = (Math.sqrt(dax*dax+day*day) + Math.sqrt(dbx*dbx+dby*dby))*0.5;
+            //console.log(n, m, c);
+            return {
+                leaf: false,
+                cx: c.x,
+                cy: c.y,
+                r: r,
+                d: d,
+                mask_id: mask_id,
+                a: this.createTree(nodes.slice(0, m), d+1, mask_id+'0'), 
+                b: this.createTree(nodes.slice(m, n), d+1, mask_id+'1'), 
+            };
+        },
         mouseMove: function(e) {
             this.mouse.x = e.clientX;
             this.mouse.y = e.clientY;
         },
     }
+});
+Vue.component('tree-item', {
+    template: `
+    <g
+    >
+        <circle
+            v-if='tree.leaf'
+            :cx='tree.x'
+            :cy='tree.y'
+            r='3'
+            fill='gray'
+        ></circle>
+
+            <rect
+                x='0'
+                y='0'
+                :width='rect.width'
+                :height='rect.height'
+                :fill='domain_fill'
+                :mask="'url(#'+tree.mask_id+')'"
+            ></rect>
+        <g
+            @mouseenter='mouseEnter'
+            @mouseleave='mouseLeave'
+        >
+
+            <circle
+                v-if='!tree.leaf'
+                :cx='tree.cx'
+                :cy='tree.cy'
+                :r='tree.r'
+                :fill='domain_fill'
+                :stroke-width='Math.exp(-tree.d*0.2)*2'
+                stroke='gray'
+                :mask="'url(#'+tree.mask_id+')'"
+            ></circle>
+        </g>
+
+        <defs>
+            <mask v-if='!tree.leaf' :id="tree.mask_id+'1'">
+                <rect
+                    x='0'
+                    y='0'
+                    :width='rect.width'
+                    :height='rect.height'
+                    fill='black'
+                ></rect>
+                <circle
+                    :cx='tree.cx'
+                    :cy='tree.cy'
+                    :r='tree.r'
+                    fill='white'
+                    :mask="'url(#'+tree.mask_id+')'"
+                ></circle>
+            </mask>
+
+            <mask v-if='!tree.leaf' :id="tree.mask_id+'0'">
+                <rect
+                    x='0'
+                    y='0'
+                    :width='rect.width'
+                    :height='rect.height'
+                    fill='black'
+                ></rect>
+                <rect
+                    x='0'
+                    y='0'
+                    :width='rect.width'
+                    :height='rect.height'
+                    fill='white'
+                    :mask="'url(#'+tree.mask_id+')'"
+                ></rect>
+                <circle
+                    :cx='tree.cx'
+                    :cy='tree.cy'
+                    :r='tree.r'
+                    fill='black'
+                ></circle>
+            </mask>
+        </defs>
+
+        <tree-item v-if='!tree.leaf' :tree='tree.a' :rect='rect'></tree-item>
+        <tree-item v-if='!tree.leaf' :tree='tree.b' :rect='rect'></tree-item>
+    </g>
+    `,
+//    props: ['tree', 'f'],
+    props: ['tree', 'rect'],
+    data: function() {
+        return {
+            active: false,
+        }
+    },
+    computed: {
+        domain_fill: function() {
+            return this.active ? 'rgba(0%, 0%, 100%, 0.1)' : 'rgba(0%, 0%, 0%, 0)';
+        },
+//        circle_fill: function() {
+//            return this.active ? 'black' : 'gray';
+//        },
+//        circle_stroke: function() {
+//            return '#0000';
+//        },
+//        line_stroke: function() {
+//            if(!this.f.line){
+//                return '#0000';
+//            }
+//            return this.active ? 'black' : 'gray';
+//        },
+//        stroke_width: function() {
+//            return Math.exp(-this.tree.d/5)*2;
+//        },
+    },
+    methods: {
+        mouseEnter: function() {
+            this.active = true;
+        },
+        mouseLeave: function() {
+            this.active = false;
+        },
+    }, 
 });
 </script>
