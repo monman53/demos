@@ -35,7 +35,7 @@ float julia(vec2 z, vec2 c) {
         nz.x = z.x*z.x - z.y*z.y + c.x;
         nz.y = 2.*z.x*z.y + c.y;
 
-        // if(z == nz) return 1.0;
+        if(z == nz) return 1.0;
 
         z = nz;
     }
@@ -49,12 +49,10 @@ void main() {
     // antialiasing
     float dl = r * 0.5; 
     float res = 0.;
-
     res += julia(z+vec2(dl*0., dl*0.), c);
     res += julia(z+vec2(dl*0., dl*1.), c);
     res += julia(z+vec2(dl*1., dl*0.), c);
     res += julia(z+vec2(dl*1., dl*1.), c);
-
     res *= 0.25;
 
     // output
@@ -79,9 +77,6 @@ var app = new Vue({
         mouseRange: 0.7,
         uniforms: {
         },
-        screenShaderMaterial: null,
-        plane: null,
-        mesh: null,
         mouse: true, 
     },
     watch: {
@@ -127,15 +122,18 @@ var app = new Vue({
         };
 
         // prepare shaders
-        this.screenShaderMaterial = new THREE.ShaderMaterial({
+        var screenShaderMaterial = new THREE.ShaderMaterial({
             fragmentShader: document.getElementById('fs').textContent,
             uniforms: this.uniforms,
         });
 
         // set plane
-        this.plane = new THREE.PlaneGeometry(1.0, 1.0);
-        this.mesh = new THREE.Mesh(this.plane, this.screenShaderMaterial);
-        this.scene.add(this.mesh);
+        var plane = new THREE.PlaneGeometry(1.0, 1.0);
+        var mesh = new THREE.Mesh(plane, screenShaderMaterial);
+        this.scene.add(mesh);
+
+        // add resize handler
+        window.addEventListener('resize', this.resize)
 
         this.draw();
     },
@@ -152,6 +150,16 @@ var app = new Vue({
         }, 
         mouseDown: function() {
             this.mouse = !this.mouse;
+        },
+        resize: function() {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+            this.sx = this.canvas.width;
+            this.sy = this.canvas.height;
+            this.uniforms.size.value.x = this.sx;
+            this.uniforms.size.value.y = this.sy;
+            this.uniforms.r.value = this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx;
+            this.draw();
         },
     }, 
 });
