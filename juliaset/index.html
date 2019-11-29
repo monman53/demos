@@ -49,11 +49,11 @@ float julia(vec2 z, vec2 c) {
 }
 
 vec4 color(float x) {
-    vec4 c1 = vec4(vec3(0., 0., 0.)/255., 0.0);
-    vec4 c2 = vec4(vec3(125., 198., 237.)/255., 0.25);
-    vec4 c3 = vec4(vec3(255., 255., 255.)/255., 0.5);
-    vec4 c4 = vec4(vec3(14., 32., 103.)/255., 0.75);
-    vec4 c5 = vec4(vec3(0., 0., 0.)/255., 1.0);
+    vec4 c1 = vec4(vec3(0., 7., 30.)/255., 0.0);
+    vec4 c2 = vec4(vec3(32., 107., 203.)/255., 0.16);
+    vec4 c3 = vec4(vec3(237., 255., 255.)/255., 0.42);
+    vec4 c4 = vec4(vec3(255., 140., 0.)/255., 0.6425);
+    vec4 c5 = vec4(vec3(0., 2., 0.)/255., 0.8575);
     vec4 cr = c1;
     if(x < c1.a){
         cr = c1;
@@ -66,7 +66,7 @@ vec4 color(float x) {
     }else if(x < c5.a){
         cr = mix(c4, c5, (x-c4.a)/(c5.a-c4.a));
     }else{
-        cr = c5;
+        cr = mix(c5, c1, (x-c5.a)/(1.0-c5.a));
     }
     return cr;
 }
@@ -107,7 +107,7 @@ var app = new Vue({
         sy: null,
         rx: 3.5,
         ry: 2.5,
-        maxItr: 64,
+        maxItr: 128,
         mouseRange: 0.7,
         shadow: 1.0,
         d: 5.0,
