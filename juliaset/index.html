@@ -147,6 +147,7 @@ var app = new Vue({
 
         // add resize handler
         window.addEventListener('resize', this.resize)
+        window.addEventListener('fullscreenchange', this.resize)
 
         this.draw();
     },
