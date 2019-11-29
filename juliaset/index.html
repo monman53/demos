@@ -10,26 +10,28 @@ body {
 
 <div id='app'>
     <canvas id='canvas' v-on:mousemove='mouseMove' v-on:mousedown='mouseDown'></canvas>
-    <div style='position: fixed;top: 0;left: 0; color: white;'>
+    <div style='position: fixed;top: 0;left: 0; color: white; padding: 1rem; background-color: #0008'>
         <input type='range' v-model='rx'      min='0.1' max='4' step='0.1'> rx {{rx}}<br>
         <input type='range' v-model='ry'      min='0.1' max='4' step='0.1'> ry {{ry}}<br>
-        <input type='range' v-model='max_itr' min='1' max='1024' step='1'> max_itr {{max_itr}}<br>
         <input type='range' v-model='mouseRange' min='0.1' max='2' step='0.1'> mouseRange {{mouseRange}}<br>
+        <input type='range' v-model='maxItr' min='1' max='1024' step='1'> maxItr {{maxItr}}<br>
+        <input type='range' v-model='shadow' min='0.01' max='4' step='0.01'> shadow {{shadow}}<br>
     </div>
 </div>
 
 <script type="x-shader/x-fragment" id="fs">
 uniform vec2 size, mouse;
-uniform float r, mouseRange;
-uniform int max_itr;
+uniform float r, mouseRange, shadow;
+uniform int maxItr;
 
 float julia(vec2 z, vec2 c) {
-    // const int max_itr = 128;
+    // const int maxItr = 128;
+    vec2 z_tmp = z;
     vec2 nz;
     for(int i=0;i<1024;i++){
-        if(i >= max_itr) break;
+        if(i >= maxItr) break;
         if(dot(z, z) > 4.){
-            return float(i)/float(max_itr);
+            return (float(i) - log(log(length(z))/log(2.))/log(2.))/float(maxItr);
         }
 
         nz.x = z.x*z.x - z.y*z.y + c.x;
@@ -56,7 +58,12 @@ void main() {
     res *= 0.25;
 
     // output
-    gl_FragColor = vec4(pow(res, 0.7));
+    // if(res > 0.5){
+    //     gl_FragColor = vec4(1.);
+    // }else{
+    //     gl_FragColor = vec4(0.);
+    // }
+    gl_FragColor = vec4(pow(res, shadow));
 }
 </script>
 
@@ -73,8 +80,9 @@ var app = new Vue({
         sy: null,
         rx: 3.5,
         ry: 2.5,
-        max_itr: 128,
+        maxItr: 64,
         mouseRange: 0.7,
+        shadow: 1.0,
         uniforms: {
         },
         mouse: true, 
@@ -88,14 +96,18 @@ var app = new Vue({
             this.uniforms.r.value = this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx;
             this.draw();
         },
-        max_itr: function() {
-            this.uniforms.max_itr.value = this.max_itr;
+        maxItr: function() {
+            this.uniforms.maxItr.value = this.maxItr;
             this.draw();
         },
         mouseRange: function() {
             this.uniforms.mouseRange.value = this.mouseRange;
             this.draw();
-        }
+        },
+        shadow: function() {
+            this.uniforms.shadow.value = this.shadow;
+            this.draw();
+        },
     }, 
     mounted: function() {
         this.canvas  = document.getElementById('canvas');
@@ -117,8 +129,9 @@ var app = new Vue({
             size:       {type: 'v2',    value: new THREE.Vector2(this.sx, this.sy)},
             mouse:      {type: 'v2',    value: new THREE.Vector2(this.sx*0.5, this.sy*0.5)}, 
             r:          {type: 'float', value: this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx}, 
-            max_itr:    {type: 'int',   value: this.max_itr}, 
+            maxItr:     {type: 'int',   value: this.maxItr}, 
             mouseRange: {type: 'float', value: this.mouseRange}, 
+            shadow:     {type: 'float', value: this.shadow}, 
         };
 
         // prepare shaders
@@ -154,6 +167,8 @@ var app = new Vue({
         resize: function() {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
+            this.canvas.style.width = window.innerWidth;
+            this.canvas.style.height = window.innerHeight;
             this.sx = this.canvas.width;
             this.sy = this.canvas.height;
             this.uniforms.size.value.x = this.sx;
