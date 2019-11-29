@@ -18,6 +18,7 @@ body {
         <input type='range' v-model='maxItr' min='1' max='1024' step='1'> maxItr {{maxItr}}<br>
         <input type='range' v-model='shadow' min='0.01' max='4' step='0.01'> shadow {{shadow}}<br>
         <input type='range' v-model='d' min='1' max='20' step='1'> d {{d}}<br>
+        <button type='button' v-on:click='save'>Save</button><br>
     </div>
 </div>
 
@@ -210,6 +211,15 @@ var app = new Vue({
             this.uniforms.r.value = this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx;
             this.renderer = new THREE.WebGLRenderer({canvas: this.canvas});
             this.draw();
+        },
+        save: function() {
+            this.renderer.render(this.scene, this.camera);
+            var screenshot = this.renderer.domElement.toDataURL();
+            var link = document.createElement("a");
+            link.href = screenshot;
+            link.download = 'out.png';
+            link.click();
+            delete link;
         },
     }, 
 });
