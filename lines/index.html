@@ -12,10 +12,12 @@
     <body>
         <canvas id="hoge" height="100px" width="100%"></canvas>
         <div id="app">
-            <input type='range' min='0' max='20' step='any' v-model.number='line_width_mu' />
-            <input type='range' min='0' max='1000' step='any' v-model.number='line_length_mu' />
-            <input type='range' min='0' max='50' step='any' v-model.number='p_lines_max' />
-            <input type='color' v-model='color' />
+            <input type='range' min='0' max='20' step='0.1' v-model.number='line_width_mu' /> width mu {{line_width_mu}}<br>
+            <input type='range' min='0' max='1000' step='1' v-model.number='line_length_mu' /> length mu {{line_length_mu}}<br>
+            <input type='range' min='0' max='50' step='1' v-model.number='p_lines_max' /> lines max {{p_lines_max}}<br>
+            <input type='range' min='1' max='1000' step='1' v-model.number='interval' /> interval {{interval}}<br>
+            <input type='range' min='1' max='1000' step='1' v-model.number='lifetime' /> lifetime {{lifetime}}<br>
+            <input type='color' v-model='color' /> Color<br>
             <button v-on:click="clear">clear</button>
         </div>
         <script>
@@ -46,6 +48,8 @@
                     line_width_std: 0,
                     line_length_mu: 0,
                     line_length_std: 0,
+                    interval: 100,
+                    lifetime: 25,
                     color: "#000000",
                 },
                 computed: {
@@ -53,7 +57,7 @@
                         return this.p_lines_max*c.width/100;
                     },
                     line_deg: function() {
-                        return Math.exp(2.0/this.lines_max*Math.log(0.1));
+                        return Math.exp(2.0/this.lifetime*Math.log(0.1));
                     },
                 },
                 mounted: function() {
@@ -65,16 +69,14 @@
                     this.line_length_mu = 300;
                     this.line_length_std = this.line_length_mu*0.1;
                     //this.line_deg = Math.exp(2.0/this.lines_max*Math.log(0.1));
+                    this.newline();
                     window.requestAnimationFrame(this.render);
                 },
                 methods: {
                     clear: function() {
                         this.lines = [];
                     },
-                    render: function() {
-                        // clear canvas
-                        ctx.clearRect(0, 0, c.width, c.height);
-
+                    newline: function() {
                         // add new line
                         let cx = rand_uniform()*c.width;
                         let cy = rand_uniform()*c.height;
@@ -90,6 +92,14 @@
                             w: rand_normal(this.line_width_mu, this.line_width_std),
                             b: 1.0,
                         });
+                        hoge = this.newline;
+                        window.setTimeout(function() {
+                            window.requestAnimationFrame(hoge);
+                        }, this.interval);
+                    },
+                    render: function() {
+                        // clear canvas
+                        ctx.clearRect(0, 0, c.width, c.height);
 
                         // remove line
                         if(this.lines.length > this.lines_max){
@@ -102,24 +112,15 @@
                             line.b *= this.line_deg;
                         }
 
-                        // draw gradient
-                        //let grad = ctx.createLinearGradient(0, 0, 0, c.height);
-                        //grad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                        //grad.addColorStop(1, 'rgba(255, 255, 255, 1)');
-                        //ctx.fillStyle = grad;
-                        //ctx.fillRect(0, 0, c.width, c.height);
-
                         // frame request
-                        //setTimeout(function(f){
-                            window.requestAnimationFrame(this.render);
-                        //}(this.render), 1000);
+                        window.requestAnimationFrame(this.render);
                     },
                     drawLine: function(sx, sy, tx, ty, w, a) {
                         //ctx.strokeStyle = 'rgba(0, 91, 148, '+b+')'
                         // console.log(this.color);
-                        var r = parseInt('0x'+this.color.substring(1, 3));
-                        var g = parseInt('0x'+this.color.substring(3, 5));
-                        var b = parseInt('0x'+this.color.substring(5, 7));
+                        var r = parseInt(this.color.substring(1, 3));
+                        var g = parseInt(this.color.substring(3, 5));
+                        var b = parseInt(this.color.substring(5, 7));
                         ctx.strokeStyle = 'rgba('+r+', '+g+', '+b+', '+a+')'
                         ctx.lineWidth = w;
                         ctx.beginPath();
