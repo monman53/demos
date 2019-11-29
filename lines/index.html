@@ -46,7 +46,7 @@
                     line_width_std: 0,
                     line_length_mu: 0,
                     line_length_std: 0,
-                    color: "",
+                    color: "#000000",
                 },
                 computed: {
                     lines_max: function() {
@@ -114,9 +114,13 @@
                             window.requestAnimationFrame(this.render);
                         //}(this.render), 1000);
                     },
-                    drawLine: function(sx, sy, tx, ty, w, b) {
+                    drawLine: function(sx, sy, tx, ty, w, a) {
                         //ctx.strokeStyle = 'rgba(0, 91, 148, '+b+')'
-                        ctx.strokeStyle = 'rgba(5, 45, 93, '+b+')'
+                        // console.log(this.color);
+                        var r = parseInt('0x'+this.color.substring(1, 3));
+                        var g = parseInt('0x'+this.color.substring(3, 5));
+                        var b = parseInt('0x'+this.color.substring(5, 7));
+                        ctx.strokeStyle = 'rgba('+r+', '+g+', '+b+', '+a+')'
                         ctx.lineWidth = w;
                         ctx.beginPath();
                         ctx.moveTo(sx, sy);
