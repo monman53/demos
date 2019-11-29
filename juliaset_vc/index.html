@@ -1,5 +1,4 @@
-<!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
-<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
+<script src='three.min.js'></script>
 <style>
 body {
     margin: 0;
@@ -30,21 +29,24 @@ const int maxItr = 64;
 
 float julia(vec2 z, vec2 c) {
     vec2 nz;
-    for(int i=0;i<maxItr;i++){
-        if(dot(z, z) > 4.){
-            return (float(i)+1.0  - log(log(length(z))/log(max(length(c), 2.)))/log(2.))/float(maxItr);
-            // return (float(i) - log(log(length(z))/log(2.))/log(2.))/float(maxItr);
-            return float(i)/float(maxItr);
-        }
+    int i;
+    float x_tmp;
+    for(int itr=0;itr<1024;itr++){
+        i = itr;
+        if(dot(z, z) >= 65536. || itr >= maxItr) break;
 
-        nz.x = z.x*z.x - z.y*z.y + c.x;
-        nz.y = 2.*z.x*z.y + c.y;
-
-        if(z == nz) return 1.0;
-
-        z = nz;
+        x_tmp = z.x*z.x - z.y*z.y + c.x;
+        z.y = 2.*z.x*z.y + c.y;
+        z.x = x_tmp;
     }
-    return 1.0;
+
+    float nu = 0.0;
+    if(i < maxItr){
+        float log_zn = log(dot(z, z)) * 0.5;
+        nu = log(log_zn / log(2.0))/log(2.0);
+    }
+
+    return (float(i+1)-nu)/float(maxItr);
 }
 
 void main() {

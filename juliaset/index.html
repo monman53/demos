@@ -1,5 +1,6 @@
-<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
+<!-- <script src='https://cdn.jsdelivr.net/npm/vue/dist/vue.js'></script> -->
+<script src='vue.min.js'></script>
+<script src='three.min.js'></script>
 <style>
 body {
     margin: 0;
@@ -16,40 +17,43 @@ body {
         <input type='range' v-model='mouseRange' min='0.1' max='2' step='0.1'> mouseRange {{mouseRange}}<br>
         <input type='range' v-model='maxItr' min='1' max='1024' step='1'> maxItr {{maxItr}}<br>
         <input type='range' v-model='shadow' min='0.01' max='4' step='0.01'> shadow {{shadow}}<br>
+        <input type='range' v-model='d' min='1' max='20' step='1'> d {{d}}<br>
     </div>
 </div>
 
 <script type="x-shader/x-fragment" id="fs">
 uniform vec2 size, mouse;
-uniform float r, mouseRange, shadow;
+uniform float r, mouseRange, shadow, d;
 uniform int maxItr;
 
 float julia(vec2 z, vec2 c) {
-    vec2 z_tmp = z;
     vec2 nz;
-    for(int i=0;i<1024;i++){
-        if(i >= maxItr) break;
-        if(dot(z, z) > 4.){
-            // return (float(i) + 1.0  - log(log(length(z))/log(max(length(c), 2.)))/log(2.))/float(maxItr);
-            // return (float(i) - log(log(length(z))/log(2.))/log(2.))/float(maxItr);
-            return float(i)/float(maxItr);
-        }
+    int i;
+    float x_tmp;
+    for(int itr=0;itr<1024;itr++){
+        i = itr;
+        if(dot(z, z) >= 65536. || itr >= maxItr) break;
 
-        nz.x = z.x*z.x - z.y*z.y + c.x;
-        nz.y = 2.*z.x*z.y + c.y;
-
-        if(z == nz) return 1.0;
-
-        z = nz;
+        x_tmp = z.x*z.x - z.y*z.y + c.x;
+        z.y = 2.*z.x*z.y + c.y;
+        z.x = x_tmp;
     }
-    return 1.0;
+
+    float nu = 0.0;
+    if(i < maxItr){
+        float log_zn = log(dot(z, z)) * 0.5;
+        nu = log(log_zn / log(2.0))/log(2.0);
+    }
+
+    return (float(i+1)-nu)/float(maxItr);
 }
 
 vec4 color(float x) {
-    vec4 c1 = vec4(vec3(14., 32., 103.)/255., 0.0);
-    vec4 c2 = vec4(vec3(125., 198., 237.)/255., 0.5);
-    vec4 c3 = vec4(vec3(125., 198., 237.)/255., 0.5);
-    vec4 c4 = vec4(vec3(14., 32., 103.)/255., 1.0);
+    vec4 c1 = vec4(vec3(0., 0., 0.)/255., 0.0);
+    vec4 c2 = vec4(vec3(125., 198., 237.)/255., 0.25);
+    vec4 c3 = vec4(vec3(255., 255., 255.)/255., 0.5);
+    vec4 c4 = vec4(vec3(14., 32., 103.)/255., 0.75);
+    vec4 c5 = vec4(vec3(0., 0., 0.)/255., 1.0);
     vec4 cr = c1;
     if(x < c1.a){
         cr = c1;
@@ -59,10 +63,17 @@ vec4 color(float x) {
         cr = mix(c2, c3, (x-c2.a)/(c3.a-c2.a));
     }else if(x < c4.a){
         cr = mix(c3, c4, (x-c3.a)/(c4.a-c3.a));
+    }else if(x < c5.a){
+        cr = mix(c4, c5, (x-c4.a)/(c5.a-c4.a));
     }else{
-        cr = c4;
+        cr = c5;
     }
     return cr;
+}
+
+vec4 pattern(float f) {
+    f = pow(f, shadow);
+    return color(mod(f, 1.0/d)*d);
 }
 
 void main() {
@@ -71,20 +82,15 @@ void main() {
 
     // antialiasing
     float dl = r * 0.5; 
-    float res = 0.;
-    res += julia(z+vec2(dl*0., dl*0.), c);
-    res += julia(z+vec2(dl*0., dl*1.), c);
-    res += julia(z+vec2(dl*1., dl*0.), c);
-    res += julia(z+vec2(dl*1., dl*1.), c);
-    res *= 0.25;
+    vec4 col = vec4(0.);
+    col += pattern(julia(z+vec2(dl*0., dl*0.), c));
+    col += pattern(julia(z+vec2(dl*0., dl*1.), c));
+    col += pattern(julia(z+vec2(dl*1., dl*0.), c));
+    col += pattern(julia(z+vec2(dl*1., dl*1.), c));
+    col *= 0.25;
 
     // output
-    // if(res > 0.5){
-    //     gl_FragColor = vec4(1.);
-    // }else{
-    //     gl_FragColor = vec4(0.);
-    // }
-    gl_FragColor = color(pow(res, shadow));
+    gl_FragColor = col;
 }
 </script>
 
@@ -104,9 +110,10 @@ var app = new Vue({
         maxItr: 64,
         mouseRange: 0.7,
         shadow: 1.0,
+        d: 5.0,
+        mouse: true, 
         uniforms: {
         },
-        mouse: true, 
     },
     watch: {
         rx: function() {
@@ -127,6 +134,10 @@ var app = new Vue({
         },
         shadow: function() {
             this.uniforms.shadow.value = this.shadow;
+            this.draw();
+        },
+        d: function() {
+            this.uniforms.d.value = this.d;
             this.draw();
         },
     }, 
@@ -153,6 +164,7 @@ var app = new Vue({
             maxItr:     {type: 'int',   value: this.maxItr}, 
             mouseRange: {type: 'float', value: this.mouseRange}, 
             shadow:     {type: 'float', value: this.shadow}, 
+            d:          {type: 'float', value: this.d}, 
         };
 
         // prepare shaders
