@@ -170,11 +170,12 @@ var app = new Vue({
             this.canvas.height = window.innerHeight;
             this.canvas.style.width = window.innerWidth;
             this.canvas.style.height = window.innerHeight;
-            this.sx = this.canvas.width;
-            this.sy = this.canvas.height;
+            this.sx = window.innerWidth;
+            this.sy = window.innerHeight;
             this.uniforms.size.value.x = this.sx;
             this.uniforms.size.value.y = this.sy;
             this.uniforms.r.value = this.sx*this.ry > this.rx*this.sy ? this.ry/this.sy : this.rx/this.sx;
+            this.renderer = new THREE.WebGLRenderer({canvas: this.canvas});
             this.draw();
         },
     }, 
