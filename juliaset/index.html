@@ -63,17 +63,21 @@ float julia(vec2 z, vec2 c) {
     return (float(i+1)-nu)/float(maxItr);
 }
 
+float smooth(float x) {
+    return smoothstep(0., 1., x);
+}
+
 vec4 color(float x) {
     if(x < c[1].a){
-        return mix(c[0], c[1], (x-c[0].a)/(c[1].a-c[0].a));
+        return mix(c[0], c[1], smooth((x-c[0].a)/(c[1].a-c[0].a)));
     }else if(x < c[2].a){
-        return mix(c[1], c[2], (x-c[1].a)/(c[2].a-c[1].a));
+        return mix(c[1], c[2], smooth((x-c[1].a)/(c[2].a-c[1].a)));
     }else if(x < c[3].a){
-        return mix(c[2], c[3], (x-c[2].a)/(c[3].a-c[2].a));
+        return mix(c[2], c[3], smooth((x-c[2].a)/(c[3].a-c[2].a)));
     }else if(x < c[4].a){
-        return mix(c[3], c[4], (x-c[3].a)/(c[4].a-c[3].a));
+        return mix(c[3], c[4], smooth((x-c[3].a)/(c[4].a-c[3].a)));
     }else{
-        return mix(c[4], c[0], (x-c[4].a)/(1.0-c[4].a));
+        return mix(c[4], c[0], smooth((x-c[4].a)/(1.0-c[4].a)));
     }
 }
 
