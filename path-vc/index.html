@@ -1,0 +1,309 @@
+<meta charset='UTF-8'>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<style>
+body {
+    margin: 0;
+}
+#app {
+    background: linear-gradient(10deg, rgb(30, 30, 70), rgb(60, 30, 80))
+}
+#controller {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    color: white;
+    padding: 1rem;
+    background-color: #0008;
+    font-size: larger;
+}
+</style>
+<div id='vue-wrap'>
+    <wrap></wrap>
+</div>
+<script>
+Vue.component('wrap', {
+    template: `
+    <div>
+        <svg :viewBox='viewBox' :width='width' :height='height' id='app'>
+            <edge-item
+                v-for='edge in edges'
+                v-if='edge.a == 0'
+                :key='edge.id'
+                :edge='edge'
+                :pos1='nodes[edge.i]'
+                :pos2='nodes[edge.j]'
+                :a='edge.a'
+            ></edge-item>
+            <edge-item
+                v-for='edge in edges'
+                v-if='edge.a == 1'
+                :key='edge.id'
+                :edge='edge'
+                :pos1='nodes[edge.i]'
+                :pos2='nodes[edge.j]'
+                :a='edge.a'
+            ></edge-item>
+            <node-item
+                @select='select'
+                v-for='node in nodes'
+                :key='node.id'
+                :node='node'
+                :pos='node'
+                :a='node.a'
+            ></node-item>
+        </svg>
+        <div id='controller'>
+            <br>
+            <button v-on:click='init()'>Init</button>
+            Total Cost: <b>{{total_cost}}</b>
+            <input type='radio' id='start' value='start' v-model='picked'>
+            <label for='start' style='color: deeppink'>Start</label>
+            <input type='radio' id='goal' value='goal' v-model='picked'>
+            <label for='goal' style='color: #00ffff'>Goal</label>
+            <input type='radio' id='toggle' value='toggle' v-model='picked'>
+            <label for='toggle' style='color: white'>Destroy</label>
+        </div>
+    </div>
+    `,
+    data: function() {
+        return {
+            viewBox: '-0.05 -0.05 1.1 0.6',
+            height: 400,
+            width: 800,
+            node_gap: 0.03,
+            node_max: 200,
+            nodes: [], 
+            edges: [],
+            distance: [],
+            rev: [], 
+            start: 0,
+            goal: 1,
+            picked: 'start',
+            total_cost: 0,
+        }
+    },
+    mounted: function() {
+        this.height = window.innerHeight;
+        this.width  = window.innerWidth;
+        this.init();
+    },
+    methods: {
+        init: function() {
+            this.nodes = [];
+            this.edges = [];
+            var id = 0;
+            // generate nodes
+            while(this.nodes.length < this.node_max){
+                var y = Math.random();
+                if(y > 0.5) continue;
+                var x = Math.random();
+                var f = false;
+                for(var node of this.nodes){
+                    var dx = node.x - x;
+                    var dy = node.y - y;
+                    if(dx*dx + dy*dy < this.node_gap*this.node_gap){
+                        f = true;
+                    }
+                }
+                if(f) continue;
+                this.nodes.push({id: id, x: x, y: y, a: 0});
+                id += 1;
+                this.distance.push(Infinity);
+                this.rev.push({from: -1, index: -1});
+            }
+
+            // generate edges
+            for(var i=0;i<this.node_max;i++){
+                for(var j=i+1;j<this.node_max;j++){
+                    var pi = this.nodes[i];
+                    var pj = this.nodes[j];
+                    var dx = pi.x - pj.x;
+                    var dy = pi.y - pj.y;
+                    if(dx*dx + dy*dy < this.node_gap*this.node_gap*5){
+                        this.edges.push({
+                            id: id,
+                            i: i,
+                            j: j,
+                            //d: Math.sqrt(dx*dx+dy*dy),
+                            d: Math.random(),
+                            a: 0,
+                        });
+                        id++;
+                    }
+                }
+            }
+
+            this.start = 0;
+            this.goal = 1;
+
+            this.solve();
+        },
+        solve: function() {
+            // BF algorithm
+            for(var edge of this.edges){
+                edge.a = 0;
+            }
+            for(var i=0;i<this.node_max;i++){
+                if(this.nodes[i].a != 4){
+                    this.nodes[i].a = 0;
+                }
+                this.distance[i] = Infinity;
+                this.rev[i] = {from: -1, index: -1};
+            }
+            this.distance[this.start] = 0;
+            var f = true;
+            while(f){
+                f = false;
+                for(var [i, edge] of this.edges.entries()){
+                    if(this.nodes[edge.i].a == 4) continue;
+                    if(this.nodes[edge.j].a == 4) continue;
+                    if(this.distance[edge.i] != Infinity){
+                        if(this.distance[edge.j] > this.distance[edge.i] + edge.d){
+                            this.distance[edge.j] = this.distance[edge.i] + edge.d;
+                            this.rev[edge.j] = {from: edge.i, index: i};
+                            f = true;
+                        }
+                    }
+                    if(this.distance[edge.j] != Infinity){
+                        if(this.distance[edge.i] > this.distance[edge.j] + edge.d){
+                            this.distance[edge.i] = this.distance[edge.j] + edge.d;
+                            this.rev[edge.i] = {from: edge.j, index: i};
+                            f = true;
+                        }
+                    }
+                }
+            }
+
+            if(this.distance[this.goal] != Infinity){
+                var now = this.goal;
+                this.total_cost = 0;
+                while(now != this.start){
+                    this.edges[this.rev[now].index].a = 1;
+                    this.total_cost += this.edges[this.rev[now].index].d;
+                    now = this.rev[now].from;
+                    this.nodes[now].a = 1;
+                }
+                this.total_cost = Math.round(this.total_cost*10000)/10000;
+            }else{
+                this.total_cost = 'Unreachable';
+            }
+
+            this.nodes[this.start].a = 2;
+            this.nodes[this.goal].a = 3;
+        },
+        select: function(id) {
+            if(this.picked == 'toggle'){
+                if(this.nodes[id].a != 2 && this.nodes[id].a != 3){
+                    if(this.nodes[id].a == 4){
+                        this.nodes[id].a = 0;
+                    }else{
+                        this.nodes[id].a = 4;
+                    }
+                }
+            }else{
+                if(this.nodes[id].a == 0 || this.nodes[id].a == 1){
+                    this[this.picked] = id;
+                }
+            }
+            this.solve();
+        }
+    }
+});
+
+Vue.component('node-item', {
+    template: `
+    <g
+        @mousedown='mouseDown'
+    >
+        <circle
+            :cx = 'pos.x'
+            :cy = 'pos.y'
+            r   = '0.015'
+            fill = '#00000000'
+        />
+        <circle
+            :cx = 'pos.x'
+            :cy = 'pos.y'
+            :r  = 'r'
+            :fill = 'fill'
+        />
+        <destroyed v-if='a == 4' :cx='pos.x' :cy='pos.y'></destroyed>
+    </g>
+    `, 
+    props: ['pos', 'a', 'node'],
+    computed: {
+        fill: function() {
+            if(this.a == 1) return 'lightgray'
+            if(this.a == 2) return 'deeppink'
+            if(this.a == 3) return 'cyan'
+            return 'lightgray';
+        },
+        r: function() {
+            if(this.a == 1) return 0.006
+            if(this.a == 2) return 0.008
+            if(this.a == 3) return 0.008
+            return 0.006;
+        }
+    },
+    methods: {
+        mouseDown: function(e){ if(e.buttons == 1){ this.$emit('select', this.node.id); } },
+    },
+});
+
+Vue.component('edge-item', {
+    template: `
+    <g>
+        <line v-if='a == 1'
+            :x1='pos1.x' :y1='pos1.y'
+            :x2='pos2.x' :y2='pos2.y'
+            :stroke-width='stroke_width+0.008'
+            stroke='#00000000'
+        />
+        <line v-if='a == 1'
+            :x1='pos1.x' :y1='pos1.y'
+            :x2='pos2.x' :y2='pos2.y'
+            :stroke-width='stroke_width+0.01'
+            stroke='#ffff0044'
+        />
+        <line
+            :x1='pos1.x' :y1='pos1.y'
+            :x2='pos2.x' :y2='pos2.y'
+            :stroke-width='stroke_width'
+            :stroke='stroke'
+        />
+    </g>
+    `, 
+    props: ['pos1', 'pos2', 'a', 'edge'],
+    computed: {
+        stroke: function() {
+            return 'lightgray';
+        },
+        stroke_width: function() {
+            var w = (1-this.edge.d)*(0.004);
+            return w;
+        },
+    },
+});
+
+Vue.component('destroyed', {
+    template: `
+    <g>
+        <line :x1='cx-l' :y1='cy-l' :x2='cx+l' :y2='cy+l' 
+              stroke='red' :stroke-width='stroke_width'/>
+        <line :x1='cx-l' :y1='cy+l' :x2='cx+l' :y2='cy-l'
+              stroke='red' :stroke-width='stroke_width'/>
+    </g>
+    `,
+    props: ['cx', 'cy'],
+    data: function() {
+        return {
+            l: 0.008,
+            stroke_width: 0.003,
+        }
+    },
+});
+
+window.onload = function(){
+    new Vue({el: "#vue-wrap"});
+};
+</script>
