@@ -1,5 +1,5 @@
 <meta charset='UTF-8'>
-<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<script src="vue.min.js"></script>
 <style>
 body {
     margin: 0;
@@ -67,10 +67,10 @@ Vue.component('wrap', {
     `,
     data: function() {
         return {
-            viewBox: '-0.05 -0.05 1.1 0.6',
+            viewBox: '-0.05 -0.05 1.1 1.1',
             height: 400,
             width: 800,
-            node_gap: 0.03,
+            node_gap: 60,
             node_max: 200,
             nodes: [], 
             edges: [],
@@ -85,6 +85,12 @@ Vue.component('wrap', {
     mounted: function() {
         this.height = window.innerHeight;
         this.width  = window.innerWidth;
+        var h = window.innerHeight;
+        var w = window.innerWidth;
+        var margin = 100;
+        this.viewBox = (-margin) + " " + (-margin) + " " + (this.width+margin*2) + " " + (this.height+margin*2);
+        this.node_max = this.width*this.height/10000;
+        console.log(this.viewBox);
         this.init();
     },
     methods: {
@@ -94,9 +100,8 @@ Vue.component('wrap', {
             var id = 0;
             // generate nodes
             while(this.nodes.length < this.node_max){
-                var y = Math.random();
-                if(y > 0.5) continue;
-                var x = Math.random();
+                var y = Math.random()*this.height;
+                var x = Math.random()*this.width;
                 var f = false;
                 for(var node of this.nodes){
                     var dx = node.x - x;
@@ -119,7 +124,7 @@ Vue.component('wrap', {
                     var pj = this.nodes[j];
                     var dx = pi.x - pj.x;
                     var dy = pi.y - pj.y;
-                    if(dx*dx + dy*dy < this.node_gap*this.node_gap*5){
+                    if(dx*dx + dy*dy < this.node_gap*this.node_gap*4){
                         this.edges.push({
                             id: id,
                             i: i,
@@ -218,13 +223,13 @@ Vue.component('node-item', {
         <circle
             :cx = 'pos.x'
             :cy = 'pos.y'
-            r   = '0.015'
+            r   = '16'
             fill = '#00000000'
         />
         <circle
             :cx = 'pos.x'
             :cy = 'pos.y'
-            :r  = 'r'
+            :r  = '12'
             :fill = 'fill'
         />
         <destroyed v-if='a == 4' :cx='pos.x' :cy='pos.y'></destroyed>
@@ -238,12 +243,6 @@ Vue.component('node-item', {
             if(this.a == 3) return 'cyan'
             return 'lightgray';
         },
-        r: function() {
-            if(this.a == 1) return 0.006
-            if(this.a == 2) return 0.008
-            if(this.a == 3) return 0.008
-            return 0.006;
-        }
     },
     methods: {
         mouseDown: function(e){ if(e.buttons == 1){ this.$emit('select', this.node.id); } },
@@ -256,7 +255,7 @@ Vue.component('edge-item', {
         <line v-if='a == 1'
             :x1='pos1.x' :y1='pos1.y'
             :x2='pos2.x' :y2='pos2.y'
-            :stroke-width='stroke_width+0.01'
+            :stroke-width='stroke_width+15'
             stroke='#ffff0044'
         />
         <line
@@ -273,7 +272,7 @@ Vue.component('edge-item', {
             return 'lightgray';
         },
         stroke_width: function() {
-            var w = this.edge.d*0.004;
+            var w = this.edge.d*10.;
             return w;
         },
     },
@@ -291,8 +290,8 @@ Vue.component('destroyed', {
     props: ['cx', 'cy'],
     data: function() {
         return {
-            l: 0.008,
-            stroke_width: 0.003,
+            l: 16,
+            stroke_width: 6,
         }
     },
 });
