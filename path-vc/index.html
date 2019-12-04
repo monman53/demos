@@ -256,12 +256,6 @@ Vue.component('edge-item', {
         <line v-if='a == 1'
             :x1='pos1.x' :y1='pos1.y'
             :x2='pos2.x' :y2='pos2.y'
-            :stroke-width='stroke_width+0.008'
-            stroke='#00000000'
-        />
-        <line v-if='a == 1'
-            :x1='pos1.x' :y1='pos1.y'
-            :x2='pos2.x' :y2='pos2.y'
             :stroke-width='stroke_width+0.01'
             stroke='#ffff0044'
         />
@@ -279,7 +273,7 @@ Vue.component('edge-item', {
             return 'lightgray';
         },
         stroke_width: function() {
-            var w = (1-this.edge.d)*(0.004);
+            var w = this.edge.d*0.004;
             return w;
         },
     },
