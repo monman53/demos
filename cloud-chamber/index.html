@@ -1,0 +1,73 @@
+<meta charset='UTF-8'>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/three.js/104/three.min.js'></script>
+<!--<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.min.js"></script>-->
+
+<style>
+body {
+    margin: 0;
+}
+</style>
+
+<div id='app'>
+    <canvas id='canvas'></canvas>
+</div>
+
+<!--initialShader-->
+<script type="x-shader/x-fragment" id="initialShader">
+float random(vec2 p) {
+   return fract(sin(dot(p.xy, vec2(12.9898,78.233)))* 43758.5453123);
+}
+void main() {
+    if(random(gl_FragCoord.xy) < 0.5){
+        gl_FragColor = vec4(0, 0, 0, 0);    // dead
+    }else{
+        gl_FragColor = vec4(1, 0, 0, 0);    // alive
+    }
+}
+</script>
+
+<script>
+window.onload = function(){
+    var app = new Vue({
+        el: '#app',
+        data: {
+            width:  1000,
+            height: 1000,
+            mouseX: 0,
+            mouseY: 0,
+            canvas: null,
+            ctx:    null,
+
+            renderer: null,
+            scene:    null,
+            camera:   null,
+        },
+        created: function() {
+            this.canvas = document.getElementById('canvas');
+
+            // webgl init
+            this.renderer = new THREE.WebGLRenderer({canvas: this.canvas});
+            this.scene    = new THREE.Scene();
+            this.camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
+
+            this.ctx    = canvas.getContext('2d');
+            this.ctx.canvas.width  = window.innerWidth;
+            this.ctx.canvas.height = window.innerHeight;
+
+            this.init();
+        }, 
+        computed: {
+        },
+        methods: {
+            init: function() {
+            },
+            mouseMove: function(e) {
+                this.mouseX = e.clientX;
+                this.mouseY = e.clientY;
+                console.log(this.mouseX, this.mouseY);
+            },
+        },
+    });
+};
+</script>

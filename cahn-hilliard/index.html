@@ -1,0 +1,13 @@
+<meta charset='UTF-8'>
+<style>
+body {
+    margin: 0;
+}
+</style>
+<script src='three.min.js'></script>
+<canvas id='my_canvas'></canvas>
+<script>
+var canvas = document.getElementById('my_canvas');
+var context = canvas.getContext( 'webgl2' );
+var renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
+</script>
