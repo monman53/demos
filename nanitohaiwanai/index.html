@@ -1,0 +1,131 @@
+<title>何とは言わないデモ</title>
+<meta charset="UTF-8">
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<!-- <script src="vue.min.js"></script> -->
+<script src="vue.js"></script>
+<style>
+body {
+    margin: 0;
+}
+svg image {
+    pointer-events: none;
+}
+/* svg { */
+    /* width: 100%; */
+    /* height: 100%; */
+    /* pointer-events: none; */
+/* } */
+</style>
+
+<div id='vue-wrap'>
+    <app></app>
+</div>
+
+<script>
+// use string template to use camlecase attribute name
+// see https://github.com/vuejs/vue/issues/4212
+Vue.component('app', {
+    template: `
+        <div>
+            <svg :viewBox='viewBox' :width='svg.w' :height='svg.h'
+                v-on:mousemove='mouseMove'
+                v-on:wheel='wheel'>
+                <image x='0' y='0' :width='image.w' :height='image.h' :href='imagePath'/>
+                <rect :x='rect.x' :y='rect.y' :width='rect.w' :height='rect.h' stroke='red' fill='#0000'/>
+            </svg>
+        </div>
+    `,
+    data: function() {
+        return {
+            mouse: {
+                x: 0,
+                y: 0,
+            },
+            rect: {
+                x: 0,
+                y: 0,
+                w: 0,
+                h: 0,
+            },
+            image: {
+                w: 1000,
+                h: 1000,
+            },
+            svg: {
+                w: 1000,
+                h: 1000,
+            },
+            view: {
+                x: 0,
+                y: 0,
+                w: 1000,
+                h: 1000, 
+            },
+            imagePath: "",
+        }
+    },
+    computed: {
+        viewBox: function() {
+            return this.view.x + ' ' + this.view.y + ' ' + this.view.w + ' ' + this.view.h;
+        },
+    },
+    watch: {
+    }, 
+    mounted: function() {
+        var url = new URL(window.location.href);
+        var imagePath = url.searchParams.get("imagepath");
+        var rect = url.searchParams.get("rect").split(",");
+        
+        this.imagePath = imagePath;
+        this.rect.x = parseInt(rect[0]);
+        this.rect.y = parseInt(rect[1]);
+        this.rect.w = parseInt(rect[2]);
+        this.rect.h = parseInt(rect[3]);
+
+        var img = new Image();
+        var hoge = this;
+        img.onload = function() {
+            hoge.image.w = this.width;
+            hoge.image.h = this.height;
+            hoge.init();
+        }
+        img.src = imagePath;
+
+        this.svg.w = window.innerWidth;
+        this.svg.h = window.innerHeight;
+    },
+    methods: {
+        init: function() {
+            var zoom = 12;
+            this.view = {
+                x: this.rect.x + this.rect.w/2 - this.svg.w/2/zoom,
+                y: this.rect.y + this.rect.h/2 - this.svg.h/2/zoom,
+                w: this.svg.w/zoom,
+                h: this.svg.h/zoom, 
+            }
+        },
+        mouseMove: function(event) {
+            // this.mouse.x = event.offsetX;
+            // this.mouse.y = event.offsetY;
+            this.mouse.x = event.clientX - event.currentTarget.getBoundingClientRect().left;
+            this.mouse.y = event.clientY - event.currentTarget.getBoundingClientRect().top;
+        }, 
+        wheel: function(event) {
+            var vmx = this.view.x + this.mouse.x / this.svg.w * this.view.w;
+            var vmy = this.view.y + this.mouse.y / this.svg.h * this.view.h;
+            var zoom = 1.5;
+            if(event.deltaY < 0){
+                zoom = 1.0/zoom;
+            }
+            this.view.x = vmx + (this.view.x - vmx)*zoom;
+            this.view.y = vmy + (this.view.y - vmy)*zoom;
+            this.view.w = this.view.w*zoom;
+            this.view.h = this.view.w*this.svg.h/this.svg.w;
+            this.view.w = this.view.w;
+            console.log(vmx, vmy);
+        }, 
+    }, 
+});
+
+new Vue({el: "#vue-wrap"});
+</script>
