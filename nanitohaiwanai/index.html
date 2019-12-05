@@ -149,6 +149,13 @@ Vue.component('app', {
     },
     methods: {
         init: function() {
+            var url = new URL(window.location.href);
+            var rect = url.searchParams.get("rect").split(",");
+            this.rect.sx = parseInt(rect[0]);
+            this.rect.sy = parseInt(rect[1]);
+            this.rect.tx = parseInt(rect[0]) + parseInt(rect[2]);
+            this.rect.ty = parseInt(rect[1]) + parseInt(rect[3]);
+            
             var zoom = 12;
             var x = Math.min(this.rect.sx, this.rect.tx);
             var y = Math.min(this.rect.sy, this.rect.ty);
