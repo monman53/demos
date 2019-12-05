@@ -10,15 +10,34 @@ body {
 svg image {
     pointer-events: none;
 }
-/* svg { */
-    /* width: 100%; */
-    /* height: 100%; */
-    /* pointer-events: none; */
-/* } */
+div#controller {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    background: #0008;
+    color: white;
+    padding: 1rem;
+    font-family: monospace;
+}
+div#contextmenu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: #0008;
+    color: white;
+    padding: 1rem;
+    font-size: large;
+    font-family: monospace;
+}
+div#contextmenu a{
+    color: white;
+}
 </style>
 
 <div id='vue-wrap'>
-    <app></app>
+    <app>
+        <div class='hoge'></div>
+    </app>
 </div>
 
 <script>
@@ -29,44 +48,75 @@ Vue.component('app', {
         <div>
             <svg :viewBox='viewBox' :width='svg.w' :height='svg.h'
                 v-on:mousemove='mouseMove'
+                v-on:click='click'
+                v-on:contextmenu='contextMenu'
                 v-on:wheel='wheel'>
                 <image x='0' y='0' :width='image.w' :height='image.h' :href='imagePath'/>
-                <rect :x='rect.x' :y='rect.y' :width='rect.w' :height='rect.h' stroke='red' fill='#0000'/>
+                <rect :x='Math.min(rect.sx, rect.tx)'
+                      :y='Math.min(rect.sy, rect.ty)'
+                      :width='Math.abs(rect.tx-rect.sx)'
+                      :height='Math.abs(rect.ty-rect.sy)' stroke='red' fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 0)'
+                    v-on:mouseup='mouseUp'
+                    :cx='(rect.sx+rect.tx)/2'
+                    :cy='(rect.sy+rect.ty)/2'
+                    r='4'
+                    fill='#0008'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 1)'
+                    v-on:mouseup='mouseUp'
+                    :cx='rect.sx'
+                    :cy='rect.sy'
+                    r='4'
+                    fill='#0008'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 2)'
+                    v-on:mouseup='mouseUp'
+                    :cx='rect.tx'
+                    :cy='rect.ty'
+                    r='4'
+                    fill='#0008'/>
             </svg>
+            <div id='contextmenu' ref='contextmenu'>
+                <p v-on:click="type='b'">Bird</p>
+                <p v-on:click="type='n'">Non bird</p>
+                <p v-on:click="type='u'">Unknown</p>
+            </div>
+            <div id='controller'>
+                type: {{type}} <br>
+                rect: x:{{parseInt(Math.min(rect.sx, rect.tx))}}
+                      y:{{parseInt(Math.min(rect.sy, rect.ty))}}
+                      w:{{parseInt(Math.abs(rect.tx - rect.sx))}}
+                      h:{{parseInt(Math.abs(rect.ty - rect.sy))}}<br>
+                vew: x:{{parseInt(view.x)}} y:{{parseInt(view.y)}} w:{{parseInt(view.w)}} h:{{parseInt(view.h)}}<br>
+                mouse: x:{{mouse.x}} y:{{mouse.y}} <br>
+                mousev: x:{{parseInt(mousev.x)}} y:{{parseInt(mousev.y)}} <br>
+                mouse.on: {{mouse.on}} <br>
+                <button v-on:click='init'>init</button>
+            </div>
         </div>
     `,
     data: function() {
         return {
-            mouse: {
-                x: 0,
-                y: 0,
-            },
-            rect: {
-                x: 0,
-                y: 0,
-                w: 0,
-                h: 0,
-            },
-            image: {
-                w: 1000,
-                h: 1000,
-            },
-            svg: {
-                w: 1000,
-                h: 1000,
-            },
-            view: {
-                x: 0,
-                y: 0,
-                w: 1000,
-                h: 1000, 
-            },
-            imagePath: "",
+            mouse: {x: 0, y: 0, on: false, sx: 0, sy: 0, dsx: 0, dsy: 0, dtx: 0, dty: 0, type: 0},
+            rect:  {sx: 0, sy: 0, tx: 0, ty: 0},
+            view:  {x: 0, y: 0, w: 1000, h: 1000},
+            image: {w: 1000, h: 1000},
+            svg:   {w: 1000, h: 1000},
+            imagePath: '',
+            type: 'u',
         }
     },
     computed: {
         viewBox: function() {
             return this.view.x + ' ' + this.view.y + ' ' + this.view.w + ' ' + this.view.h;
+        },
+        mousev: function() {
+            return {
+                x: this.view.x + this.mouse.x / this.svg.w * this.view.w,
+                y: this.view.y + this.mouse.y / this.svg.h * this.view.h
+            }
         },
     },
     watch: {
@@ -77,10 +127,10 @@ Vue.component('app', {
         var rect = url.searchParams.get("rect").split(",");
         
         this.imagePath = imagePath;
-        this.rect.x = parseInt(rect[0]);
-        this.rect.y = parseInt(rect[1]);
-        this.rect.w = parseInt(rect[2]);
-        this.rect.h = parseInt(rect[3]);
+        this.rect.sx = parseInt(rect[0]);
+        this.rect.sy = parseInt(rect[1]);
+        this.rect.tx = parseInt(rect[0]) + parseInt(rect[2]);
+        this.rect.ty = parseInt(rect[1]) + parseInt(rect[3]);
 
         var img = new Image();
         var hoge = this;
@@ -93,26 +143,48 @@ Vue.component('app', {
 
         this.svg.w = window.innerWidth;
         this.svg.h = window.innerHeight;
+
+        // contextmenu
+        this.$refs['contextmenu'].style.visibility = 'hidden';
     },
     methods: {
         init: function() {
             var zoom = 12;
+            var x = Math.min(this.rect.sx, this.rect.tx);
+            var y = Math.min(this.rect.sy, this.rect.ty);
+            var w = Math.abs(this.rect.tx - this.rect.sx);
+            var h = Math.abs(this.rect.ty - this.rect.sy);
             this.view = {
-                x: this.rect.x + this.rect.w/2 - this.svg.w/2/zoom,
-                y: this.rect.y + this.rect.h/2 - this.svg.h/2/zoom,
+                x: x + w/2 - this.svg.w/2/zoom,
+                y: y + h/2 - this.svg.h/2/zoom,
                 w: this.svg.w/zoom,
                 h: this.svg.h/zoom, 
             }
         },
         mouseMove: function(event) {
-            // this.mouse.x = event.offsetX;
-            // this.mouse.y = event.offsetY;
             this.mouse.x = event.clientX - event.currentTarget.getBoundingClientRect().left;
             this.mouse.y = event.clientY - event.currentTarget.getBoundingClientRect().top;
+
+            if(this.mouse.on){
+                if(this.mouse.type == 0){
+                    this.rect.sx = parseInt(this.mousev.x + this.mouse.dsx);
+                    this.rect.sy = parseInt(this.mousev.y + this.mouse.dsy);
+                    this.rect.tx = parseInt(this.mousev.x + this.mouse.dtx);
+                    this.rect.ty = parseInt(this.mousev.y + this.mouse.dty);
+                }
+                if(this.mouse.type == 1){
+                    this.rect.sx = parseInt(this.mousev.x + this.mouse.dsx);
+                    this.rect.sy = parseInt(this.mousev.y + this.mouse.dsy);
+                }
+                if(this.mouse.type == 2){
+                    this.rect.tx = parseInt(this.mousev.x + this.mouse.dtx);
+                    this.rect.ty = parseInt(this.mousev.y + this.mouse.dty);
+                }
+            }
         }, 
         wheel: function(event) {
-            var vmx = this.view.x + this.mouse.x / this.svg.w * this.view.w;
-            var vmy = this.view.y + this.mouse.y / this.svg.h * this.view.h;
+            var vmx = this.mousev.x;
+            var vmy = this.mousev.y;
             var zoom = 1.5;
             if(event.deltaY < 0){
                 zoom = 1.0/zoom;
@@ -122,8 +194,29 @@ Vue.component('app', {
             this.view.w = this.view.w*zoom;
             this.view.h = this.view.w*this.svg.h/this.svg.w;
             this.view.w = this.view.w;
-            console.log(vmx, vmy);
         }, 
+        contextMenu: function(event) {
+            event.preventDefault();
+            this.$refs['contextmenu'].style.visibility = 'visible';
+            this.$refs['contextmenu'].style.left = this.mouse.x;
+            this.$refs['contextmenu'].style.top = this.mouse.y;
+        },
+        click: function(event) {
+            this.$refs['contextmenu'].style.visibility = 'hidden';
+        }, 
+        mouseDown: function(event, type) {
+            this.mouse.on = true;
+            this.mouse.sx = this.mousev.x;
+            this.mouse.sy = this.mousev.y;
+            this.mouse.dsx = this.rect.sx - this.mousev.x;
+            this.mouse.dsy = this.rect.sy - this.mousev.y;
+            this.mouse.dtx = this.rect.tx - this.mousev.x;
+            this.mouse.dty = this.rect.ty - this.mousev.y;
+            this.mouse.type = type;
+        },
+        mouseUp: function(event) {
+            this.mouse.on = false;
+        }
     }, 
 });
 
