@@ -62,16 +62,11 @@ Vue.component('app', {
                     v-on:mousedown='mouseDown($event, -1)'/>
                 <rect :x='Math.min(rect.sx, rect.tx)'
                       :y='Math.min(rect.sy, rect.ty)'
+                      v-on:mousedown='mouseDown($event, 0)'
+                      v-on:mouseup='mouseUp'
+                      cursor='move'
                       :width='Math.abs(rect.tx-rect.sx)'
                       :height='Math.abs(rect.ty-rect.sy)' stroke='red' fill='#0000'/>
-                <circle
-                    v-on:mousedown='mouseDown($event, 0)'
-                    v-on:mouseup='mouseUp'
-                    cursor='move'
-                    :cx='(rect.sx+rect.tx)/2'
-                    :cy='(rect.sy+rect.ty)/2'
-                    r='4'
-                    fill='#0000'/>
                 <circle
                     v-on:mousedown='mouseDown($event, 5)'
                     v-on:mouseup='mouseUp'
