@@ -1,9 +1,9 @@
 <title>何とは言わないデモ</title>
 <meta charset="UTF-8">
 <meta name='viewport' content='width=device-width, initial-scale=1'>
-<!-- <script src="vue.min.js"></script> -->
+<script src="vue.min.js"></script>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-<script src="vue.js"></script>
+<!-- <script src="vue.js"></script> -->
 <style>
 body {
     margin: 0;
@@ -35,11 +35,9 @@ div#contextmenu {
     position: fixed;
     left: 0;
     top: 0;
-    background: #0008;
-    color: white;
-    padding: 1rem;
-    font-size: large;
-    font-family: monospace;
+    /* padding: 1rem; */
+    /* font-size: large; */
+    /* font-family: monospace; */
     visibility: hidden;
 }
 div#contextmenu a{
@@ -54,9 +52,6 @@ div#contextmenu a{
 </div>
 
 <script>
-
-
-
 // use string template to use camlecase attribute name
 // see https://github.com/vuejs/vue/issues/4212
 Vue.component('app', {
@@ -73,7 +68,7 @@ Vue.component('app', {
                       :width='Math.abs(rect.tx-rect.sx)'
                       :height='Math.abs(rect.ty-rect.sy)' stroke='red' fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 0)'
+                    v-on:mousedown='mouseDown($event, 0)'
                     v-on:mouseup='mouseUp'
                     cursor='move'
                     :cx='(rect.sx+rect.tx)/2'
@@ -81,7 +76,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 5)'
+                    v-on:mousedown='mouseDown($event, 5)'
                     v-on:mouseup='mouseUp'
                     cursor='n-resize'
                     :cx='(rect.sx+rect.tx)/2'
@@ -89,7 +84,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 6)'
+                    v-on:mousedown='mouseDown($event, 6)'
                     v-on:mouseup='mouseUp'
                     cursor='e-resize'
                     :cx='rect.tx'
@@ -97,7 +92,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 7)'
+                    v-on:mousedown='mouseDown($event, 7)'
                     v-on:mouseup='mouseUp'
                     cursor='s-resize'
                     :cx='(rect.sx+rect.tx)/2'
@@ -105,7 +100,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 8)'
+                    v-on:mousedown='mouseDown($event, 8)'
                     v-on:mouseup='mouseUp'
                     cursor='w-resize'
                     :cx='rect.sx'
@@ -113,7 +108,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 1)'
+                    v-on:mousedown='mouseDown($event, 1)'
                     v-on:mouseup='mouseUp'
                     cursor='nw-resize'
                     :cx='rect.sx'
@@ -121,7 +116,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 2)'
+                    v-on:mousedown='mouseDown($event, 2)'
                     v-on:mouseup='mouseUp'
                     cursor='se-resize'
                     :cx='rect.tx'
@@ -129,7 +124,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 3)'
+                    v-on:mousedown='mouseDown($event, 3)'
                     v-on:mouseup='mouseUp'
                     cursor='ne-resize'
                     :cx='rect.tx'
@@ -137,7 +132,7 @@ Vue.component('app', {
                     r='4'
                     fill='#0000'/>
                 <circle
-                    v-on:mousedown='mouseDown(this, 4)'
+                    v-on:mousedown='mouseDown($event, 4)'
                     v-on:mouseup='mouseUp'
                     cursor='sw-resize'
                     :cx='rect.sx'
@@ -146,12 +141,14 @@ Vue.component('app', {
                     fill='#0000'/>
             </svg>
             <div id='contextmenu' ref='contextmenu'>
-                <p v-on:click="type='b'">Bird</p>
-                <p v-on:click="type='n'">Non bird</p>
-                <p v-on:click="type='u'">Unknown</p>
+                <div class="btn-group-vertical">
+                    <button type='button' class="btn btn-primary" @click="type='b'">Bird</button>
+                    <button type='button' class="btn btn-primary" @click="type='n'">Non Bird</button>
+                    <button type='button' class="btn btn-primary" @click="type='u'">Unknown</button>
+                </div>
             </div>
             <div id='header'>
-                User Name: {{userName}}
+                User ID: {{userID}}
             </div>
             <div id='footer'>
                 <div id='debug' style='display: none;'>
@@ -165,7 +162,21 @@ Vue.component('app', {
                     mousev: x:{{parseInt(mousev.x)}} y:{{parseInt(mousev.y)}} <br>
                     mouse.on: {{mouse.on}} <br>
                 </div>
-                <button v-on:click='init'>init</button>
+                <div class='container'
+                    <div class="row">
+                        <div class="col align-self-center">
+                            <input class='btn btn-secondary' type='button' value='Init' @click="init">
+                            <input class='btn btn-primary' type='button' value='Bird' @click="type='b'">
+                            <input class='btn btn-primary' type='button' value='Non Bird' @click="type='n'">
+                            <input class='btn btn-primary' type='button' value='Unknown' @click="type='u'">
+                        </div>
+                        <div class="col-7 align-self-center">
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" v-bind:style="{width: progress + '%'}" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">{{progress}}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `,
@@ -178,7 +189,7 @@ Vue.component('app', {
             svg:   {w: 1000, h: 1000},
             imagePath: '',
             type: 'u',
-            userName: 'unknown',
+            userID: 'unknown',
             progress: 20,
         }
     },
@@ -228,6 +239,42 @@ Vue.component('app', {
                 h: this.svg.h/zoom, 
             }
         },
+        wheel: function(event) {
+            var vmx = this.mousev.x;
+            var vmy = this.mousev.y;
+            var zoom = 1.5;
+            if(event.deltaY < 0){
+                zoom = 1.0/zoom;
+            }
+            this.view.x = vmx + (this.view.x - vmx)*zoom;
+            this.view.y = vmy + (this.view.y - vmy)*zoom;
+            this.view.w = this.view.w*zoom;
+            this.view.h = this.view.w*this.svg.h/this.svg.w;
+            this.view.w = this.view.w;
+        }, 
+        contextMenu: function(event) {
+            event.preventDefault();
+            this.$refs['contextmenu'].style.visibility = 'visible';
+            this.$refs['contextmenu'].style.left = this.mouse.x;
+            this.$refs['contextmenu'].style.top = this.mouse.y;
+        },
+        click: function(event) {
+            this.$refs['contextmenu'].style.visibility = 'hidden';
+        }, 
+        mouseDown: function(event, type) {
+            if(event.which !== 1) return;
+            this.mouse.on = true;
+            this.mouse.sx = this.mousev.x;
+            this.mouse.sy = this.mousev.y;
+            this.mouse.dsx = this.rect.sx - this.mousev.x;
+            this.mouse.dsy = this.rect.sy - this.mousev.y;
+            this.mouse.dtx = this.rect.tx - this.mousev.x;
+            this.mouse.dty = this.rect.ty - this.mousev.y;
+            this.mouse.type = type;
+        },
+        mouseUp: function(event) {
+            this.mouse.on = false;
+        },
         mouseMove: function(event) {
             this.mouse.x = event.clientX - event.currentTarget.getBoundingClientRect().left;
             this.mouse.y = event.clientY - event.currentTarget.getBoundingClientRect().top;
@@ -271,41 +318,6 @@ Vue.component('app', {
                 }
             }
         }, 
-        wheel: function(event) {
-            var vmx = this.mousev.x;
-            var vmy = this.mousev.y;
-            var zoom = 1.5;
-            if(event.deltaY < 0){
-                zoom = 1.0/zoom;
-            }
-            this.view.x = vmx + (this.view.x - vmx)*zoom;
-            this.view.y = vmy + (this.view.y - vmy)*zoom;
-            this.view.w = this.view.w*zoom;
-            this.view.h = this.view.w*this.svg.h/this.svg.w;
-            this.view.w = this.view.w;
-        }, 
-        contextMenu: function(event) {
-            event.preventDefault();
-            this.$refs['contextmenu'].style.visibility = 'visible';
-            this.$refs['contextmenu'].style.left = this.mouse.x;
-            this.$refs['contextmenu'].style.top = this.mouse.y;
-        },
-        click: function(event) {
-            this.$refs['contextmenu'].style.visibility = 'hidden';
-        }, 
-        mouseDown: function(event, type) {
-            this.mouse.on = true;
-            this.mouse.sx = this.mousev.x;
-            this.mouse.sy = this.mousev.y;
-            this.mouse.dsx = this.rect.sx - this.mousev.x;
-            this.mouse.dsy = this.rect.sy - this.mousev.y;
-            this.mouse.dtx = this.rect.tx - this.mousev.x;
-            this.mouse.dty = this.rect.ty - this.mousev.y;
-            this.mouse.type = type;
-        },
-        mouseUp: function(event) {
-            this.mouse.on = false;
-        }
     }, 
 });
 
@@ -334,10 +346,10 @@ let app = new Vue({
             return this.$refs.main.type;
         },
         setUserName: function(name) {
-            this.$refs.main.userName = name;
+            this.$refs.main.userID = name;
         },
         setProgress: function(progress) {
-            this.$refs.main.rect.userName = progress;
+            this.$refs.main.rect.userID = progress;
         },
     },
 });
