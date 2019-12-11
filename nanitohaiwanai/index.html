@@ -1,20 +1,11 @@
 <title>何とは言わないデモ</title>
 <meta charset="UTF-8">
 <meta name='viewport' content='width=device-width, initial-scale=1'>
-<!-- <script src="vue.js"></script> -->
-<!-- <script src="vue.min.js"></script> -->
 <script src="https://cdn.jsdelivr.net/npm/vue"></script>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 <style>
-body {
-    margin: 0;
-}
-svg image {
-    pointer-events: none;
-}
 div#header {
     position: fixed;
-    left: 0;
     top: 0;
     background: #0008;
     color: white;
@@ -23,7 +14,6 @@ div#header {
 }
 div#footer {
     position: fixed;
-    left: 0;
     bottom: 0;
     background: #0008;
     color: white;
@@ -56,7 +46,7 @@ Vue.component('app', {
                 v-on:click='click'
                 v-on:contextmenu='contextMenu'
                 v-on:wheel='wheel'>
-                <image x='0' y='0' :width='image.w' :height='image.h' :href='imagePath'/>
+                <image x='0' y='0' :width='image.w' :height='image.h' :href='imagePath' style='pointer-ecents: none;'/>
                 <rect :x='view.x' :y='view.y' :width='view.w' :height='view.h' fill='#0000'
                     v-on:mouseup='mouseUp'
                     v-on:mousedown='mouseDown($event, -1)'/>
@@ -357,7 +347,7 @@ let app = new Vue({
     },
 });
 
-// example
+// examples
 app.setImagePath('0fram.jpg');
 app.setRect(320,300,20,20);
 app.setUserName('Mizukami');
