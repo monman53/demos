@@ -2,6 +2,7 @@
 <meta charset="UTF-8">
 <meta name='viewport' content='width=device-width, initial-scale=1'>
 <!-- <script src="vue.min.js"></script> -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 <script src="vue.js"></script>
 <style>
 body {
@@ -10,14 +11,25 @@ body {
 svg image {
     pointer-events: none;
 }
-div#controller {
+div#header {
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: #0008;
+    color: white;
+    padding: 1rem;
+    /* font-family: monospace; */
+    width: 100%;
+}
+div#footer {
     position: fixed;
     left: 0;
     bottom: 0;
     background: #0008;
     color: white;
     padding: 1rem;
-    font-family: monospace;
+    /* font-family: monospace; */
+    width: 100%;
 }
 div#contextmenu {
     position: fixed;
@@ -28,6 +40,7 @@ div#contextmenu {
     padding: 1rem;
     font-size: large;
     font-family: monospace;
+    visibility: hidden;
 }
 div#contextmenu a{
     color: white;
@@ -35,12 +48,15 @@ div#contextmenu a{
 </style>
 
 <div id='vue-wrap'>
-    <app>
+    <app ref='main'>
         <div class='hoge'></div>
     </app>
 </div>
 
 <script>
+
+
+
 // use string template to use camlecase attribute name
 // see https://github.com/vuejs/vue/issues/4212
 Vue.component('app', {
@@ -83,16 +99,21 @@ Vue.component('app', {
                 <p v-on:click="type='n'">Non bird</p>
                 <p v-on:click="type='u'">Unknown</p>
             </div>
-            <div id='controller'>
-                type: {{type}} <br>
-                rect: x:{{parseInt(Math.min(rect.sx, rect.tx))}}
-                      y:{{parseInt(Math.min(rect.sy, rect.ty))}}
-                      w:{{parseInt(Math.abs(rect.tx - rect.sx))}}
-                      h:{{parseInt(Math.abs(rect.ty - rect.sy))}}<br>
-                vew: x:{{parseInt(view.x)}} y:{{parseInt(view.y)}} w:{{parseInt(view.w)}} h:{{parseInt(view.h)}}<br>
-                mouse: x:{{mouse.x}} y:{{mouse.y}} <br>
-                mousev: x:{{parseInt(mousev.x)}} y:{{parseInt(mousev.y)}} <br>
-                mouse.on: {{mouse.on}} <br>
+            <div id='header'>
+                User Name: {{userName}}
+            </div>
+            <div id='footer'>
+                <div id='debug' style='display: none;'>
+                    type: {{type}} <br>
+                    rect: x:{{parseInt(Math.min(rect.sx, rect.tx))}}
+                          y:{{parseInt(Math.min(rect.sy, rect.ty))}}
+                          w:{{parseInt(Math.abs(rect.tx - rect.sx))}}
+                          h:{{parseInt(Math.abs(rect.ty - rect.sy))}}<br>
+                    vew: x:{{parseInt(view.x)}} y:{{parseInt(view.y)}} w:{{parseInt(view.w)}} h:{{parseInt(view.h)}}<br>
+                    mouse: x:{{mouse.x}} y:{{mouse.y}} <br>
+                    mousev: x:{{parseInt(mousev.x)}} y:{{parseInt(mousev.y)}} <br>
+                    mouse.on: {{mouse.on}} <br>
+                </div>
                 <button v-on:click='init'>init</button>
             </div>
         </div>
@@ -106,6 +127,8 @@ Vue.component('app', {
             svg:   {w: 1000, h: 1000},
             imagePath: '',
             type: 'u',
+            userName: 'unknown',
+            progress: 20,
         }
     },
     computed: {
@@ -122,40 +145,26 @@ Vue.component('app', {
     watch: {
     }, 
     mounted: function() {
-        var url = new URL(window.location.href);
-        var imagePath = url.searchParams.get("imagepath");
-        var rect = url.searchParams.get("rect").split(",");
-        
-        this.imagePath = imagePath;
-        this.rect.sx = parseInt(rect[0]);
-        this.rect.sy = parseInt(rect[1]);
-        this.rect.tx = parseInt(rect[0]) + parseInt(rect[2]);
-        this.rect.ty = parseInt(rect[1]) + parseInt(rect[3]);
-
-        var img = new Image();
-        var hoge = this;
-        img.onload = function() {
-            hoge.image.w = this.width;
-            hoge.image.h = this.height;
-            hoge.init();
-        }
-        img.src = imagePath;
+        // var url = new URL(window.location.href);
+        // var imagePath = url.searchParams.get("imagepath");
+        // var rect = url.searchParams.get("rect").split(",");
 
         this.svg.w = window.innerWidth;
         this.svg.h = window.innerHeight;
-
-        // contextmenu
-        this.$refs['contextmenu'].style.visibility = 'hidden';
     },
     methods: {
+        loadImage: function(imagePath) {
+            var img = new Image();
+            var hoge = this;
+            img.onload = function() {
+                hoge.imagePath = imagePath;
+                hoge.image.w = this.width;
+                hoge.image.h = this.height;
+                hoge.init();
+            }
+            img.src = imagePath;
+        },
         init: function() {
-            var url = new URL(window.location.href);
-            var rect = url.searchParams.get("rect").split(",");
-            this.rect.sx = parseInt(rect[0]);
-            this.rect.sy = parseInt(rect[1]);
-            this.rect.tx = parseInt(rect[0]) + parseInt(rect[2]);
-            this.rect.ty = parseInt(rect[1]) + parseInt(rect[3]);
-            
             var zoom = 12;
             var x = Math.min(this.rect.sx, this.rect.tx);
             var y = Math.min(this.rect.sy, this.rect.ty);
@@ -227,5 +236,43 @@ Vue.component('app', {
     }, 
 });
 
-new Vue({el: "#vue-wrap"});
+
+let app = new Vue({
+    el: "#vue-wrap",
+    methods: {
+        setImagePath: function(imagePath) {
+            this.$refs.main.loadImage(imagePath);
+        },
+        getRect: function(imagePath) {
+            var sx = this.$refs.main.rect.sx;
+            var sy = this.$refs.main.rect.sy;
+            var tx = this.$refs.main.rect.tx;
+            var ty = this.$refs.main.rect.ty;
+            return [Math.min(sx, tx), Math.min(sy, ty), Math.abs(sx-tx), Math.abs(sy-ty)];
+        },
+        setRect: function(x, y, w, h) {
+            this.$refs.main.rect.sx = x;
+            this.$refs.main.rect.sy = y;
+            this.$refs.main.rect.tx = x+w;
+            this.$refs.main.rect.ty = y+h;
+            this.$refs.main.init();
+        },
+        getType: function() {
+            return this.$refs.main.type;
+        },
+        setUserName: function(name) {
+            this.$refs.main.userName = name;
+        },
+        setProgress: function(progress) {
+            this.$refs.main.rect.userName = progress;
+        },
+    },
+});
+
+// example
+app.setImagePath('0fram.jpg');
+app.setRect(320,300,20,20);
+app.setUserName('Mizukami');
+app.setProgress(20);
+
 </script>
