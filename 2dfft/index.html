@@ -6,6 +6,123 @@
 <script src='vue.min.js'></script>
 <script src='three.min.js'></script>
 
+<!-- <script type="x&#45;shader/x&#45;fragment" data&#45;src="shader/fs0.fs" id='fs0'></script> -->
+<!-- <script type="x&#45;shader/x&#45;fragment" data&#45;src="shader/fs1.fs" id='fs1'></script> -->
+<!-- <script type="x&#45;shader/x&#45;fragment" data&#45;src="shader/fscv0.fs" id='fscv0'> -->
+<script type='x-shader/x-fragment' id='fscv0'>
+//uniform vec2 d;
+//uniform sampler2D ta;
+void main() {
+    //vec2 p = gl_FragCoord.xy*d;
+    //gl_FragColor = texture2D(ta, p);
+    gl_FragColor = vec4(1., 0., 0., 0.);
+}
+</script>
+<!-- <script type="x&#45;shader/x&#45;fragment" data&#45;src="shader/fscv1.fs" id='fscv1'></script> -->
+
 <div id='app'>
     <h1>2D Fast Fourier Transform Demo</h1>
+    <h2>Fourier Transform</h2>
+    <h3>Original Image</h3>
+    image URL: <input v-model='imageURL'> <button v-on:click='loadImage'>Update</button><br>
+    <!-- <canvas id='cv1'></canvas> -->
+    <!-- <canvas id='cv2'></canvas> -->
+    <!-- <canvas id='cv3'></canvas> -->
 </div>
+<canvas id='cv0'></canvas>
+
+<script>
+// 'use strict';
+
+let N = 512;
+
+let cv0 = document.getElementById('cv0');
+// let cv1 = document.getElementById('cv1');
+// let cv2 = document.getElementById('cv2');
+// let cv3 = document.getElementById('cv3');
+
+cv0.width = N; cv0.height = N;
+// cv1.width = N; cv1.height = N;
+// cv2.width = N; cv2.height = N;
+// cv3.width = N; cv3.height = N;
+
+let renderer0 = new THREE.WebGLRenderer({canvas: cv0});
+// let renderer1 = new THREE.WebGLRenderer({canvas: cv1});
+// let renderer2 = new THREE.WebGLRenderer({canvas: cv2});
+// let renderer3 = new THREE.WebGLRenderer({canvas: cv3});
+
+let scene    = new THREE.Scene();
+let camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
+
+camera.position.z = 1;
+scene.add(camera)
+
+let uniforms = {
+    // d:          {type: 'v2', value: new THREE.Vector2(1.0/N, 1.0/N)},
+    // ta:         {type: 't',  value: undefined},
+    // tb:         {type: 't',  value: undefined},
+};
+
+let mfscv0 = new THREE.ShaderMaterial({
+    fragmentShader: document.getElementById('fscv0').textContent,
+    uniforms: uniforms,
+});
+
+let plane = new THREE.PlaneGeometry(1.0, 1.0);
+// let mesh  = new THREE.Mesh(plane);
+let mesh  = new THREE.Mesh(plane, mfscv0);
+scene.add(mesh);
+
+// textures
+// let t0 = new THREE.WebGLRenderTarget(N, N);
+// let t1 = [
+//     new THREE.WebGLRenderTarget(N, N),
+//     new THREE.WebGLRenderTarget(N, N),
+// ];
+// mesh.material = mfscv0;
+// // renderer0.setRenderTarget(null);    // to canvas0
+//
+// renderer0.render(scene, camera)
+
+
+var app = new Vue({
+    el: '#app',
+    data: {
+        imageURL: 'image.png',
+    }, 
+    // mounted: function () {
+    //     // this.loadImage();
+    //     this.init();
+    // },
+    methods: {
+        loadImage: function() {
+            var loader = new THREE.TextureLoader();
+            loader.load(
+                this.imageURL,
+                // onLoad callback
+                this.init,
+                // onProgress callback currently not supported
+                undefined,
+                // onError callback
+                function() {
+                    console.error('Load Error');
+                }
+            );
+        },
+        // init: function(texture) {
+        init: function() {
+            t0 = texture;
+
+            uniforms.ta.value = t0;
+            // uniforms.ta.value = texture;
+
+            mesh.material = mfscv0;
+            renderer0.setRenderTarget(null);    // to canvas0
+
+            renderer0.render(scene, camera)
+
+            console.log('hoge');
+        },
+    },
+});
+</script>

@@ -18,7 +18,6 @@ div#header {
     background: #0008;
     color: white;
     padding: 1rem;
-    /* font-family: monospace; */
     width: 100%;
 }
 div#footer {
@@ -28,20 +27,13 @@ div#footer {
     background: #0008;
     color: white;
     padding: 1rem;
-    /* font-family: monospace; */
     width: 100%;
 }
 div#contextmenu {
     position: fixed;
     left: 0;
     top: 0;
-    /* padding: 1rem; */
-    /* font-size: large; */
-    /* font-family: monospace; */
     visibility: hidden;
-}
-div#contextmenu a{
-    color: white;
 }
 </style>
 
@@ -58,11 +50,15 @@ Vue.component('app', {
     template: `
         <div>
             <svg :viewBox='viewBox' :width='svg.w' :height='svg.h'
+                v-on:mouseup='mouseUp'
                 v-on:mousemove='mouseMove'
                 v-on:click='click'
                 v-on:contextmenu='contextMenu'
                 v-on:wheel='wheel'>
                 <image x='0' y='0' :width='image.w' :height='image.h' :href='imagePath'/>
+                <rect :x='view.x' :y='view.y' :width='view.w' :height='view.h' fill='#0000'
+                    v-on:mouseup='mouseUp'
+                    v-on:mousedown='mouseDown($event, -1)'/>
                 <rect :x='Math.min(rect.sx, rect.tx)'
                       :y='Math.min(rect.sy, rect.ty)'
                       :width='Math.abs(rect.tx-rect.sx)'
@@ -151,7 +147,7 @@ Vue.component('app', {
                 User ID: {{userID}}
             </div>
             <div id='footer'>
-                <div id='debug' style='display: none;'>
+                <div id='debug' style='display: display;'>
                     type: {{type}} <br>
                     rect: x:{{parseInt(Math.min(rect.sx, rect.tx))}}
                           y:{{parseInt(Math.min(rect.sy, rect.ty))}}
@@ -182,7 +178,7 @@ Vue.component('app', {
     `,
     data: function() {
         return {
-            mouse: {x: 0, y: 0, on: false, sx: 0, sy: 0, dsx: 0, dsy: 0, dtx: 0, dty: 0, type: 0},
+            mouse: {x: 0, y: 0, on: false, sx: 0, sy: 0, dsx: 0, dsy: 0, dtx: 0, dty: 0, svx: 0, svy: 0, dvx: 0, dvy: 0, type: 0},
             rect:  {sx: 0, sy: 0, tx: 0, ty: 0},
             view:  {x: 0, y: 0, w: 1000, h: 1000},
             image: {w: 1000, h: 1000},
@@ -270,6 +266,10 @@ Vue.component('app', {
             this.mouse.dsy = this.rect.sy - this.mousev.y;
             this.mouse.dtx = this.rect.tx - this.mousev.x;
             this.mouse.dty = this.rect.ty - this.mousev.y;
+            this.mouse.svx = this.view.x;
+            this.mouse.svy = this.view.y;
+            this.mouse.dvx = this.mouse.x;
+            this.mouse.dvy = this.mouse.y;
             this.mouse.type = type;
         },
         mouseUp: function(event) {
@@ -280,6 +280,13 @@ Vue.component('app', {
             this.mouse.y = event.clientY - event.currentTarget.getBoundingClientRect().top;
 
             if(this.mouse.on){
+                if(this.mouse.type == -1){
+                    var dvx = (this.mouse.dvx - this.mouse.x)/this.svg.w*this.view.w;
+                    var dvy = (this.mouse.dvy - this.mouse.y)/this.svg.h*this.view.h;
+                    this.view.x = this.mouse.svx + dvx;
+                    this.view.y = this.mouse.svy + dvy;
+                }
+
                 if(this.mouse.type == 0){
                     this.rect.sx = parseInt(this.mousev.x + this.mouse.dsx);
                     this.rect.sy = parseInt(this.mousev.y + this.mouse.dsy);
@@ -359,5 +366,11 @@ app.setImagePath('0fram.jpg');
 app.setRect(320,300,20,20);
 app.setUserName('Mizukami');
 app.setProgress(20);
+document.addEventListener('keydown', function(e) {
+    console.log(e.code);
+    if(e.code == 'KeyZ') app.$refs.main.type = 'b';
+    if(e.code == 'KeyX') app.$refs.main.type = 'n';
+    if(e.code == 'KeyC') app.$refs.main.type = 'u';
+});
 
 </script>
