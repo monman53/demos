@@ -75,24 +75,75 @@ Vue.component('app', {
                 <circle
                     v-on:mousedown='mouseDown(this, 0)'
                     v-on:mouseup='mouseUp'
+                    cursor='move'
                     :cx='(rect.sx+rect.tx)/2'
                     :cy='(rect.sy+rect.ty)/2'
                     r='4'
-                    fill='#0008'/>
+                    fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 5)'
+                    v-on:mouseup='mouseUp'
+                    cursor='n-resize'
+                    :cx='(rect.sx+rect.tx)/2'
+                    :cy='rect.sy'
+                    r='4'
+                    fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 6)'
+                    v-on:mouseup='mouseUp'
+                    cursor='e-resize'
+                    :cx='rect.tx'
+                    :cy='(rect.sy+rect.ty)/2'
+                    r='4'
+                    fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 7)'
+                    v-on:mouseup='mouseUp'
+                    cursor='s-resize'
+                    :cx='(rect.sx+rect.tx)/2'
+                    :cy='rect.ty'
+                    r='4'
+                    fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 8)'
+                    v-on:mouseup='mouseUp'
+                    cursor='w-resize'
+                    :cx='rect.sx'
+                    :cy='(rect.sy+rect.ty)/2'
+                    r='4'
+                    fill='#0000'/>
                 <circle
                     v-on:mousedown='mouseDown(this, 1)'
                     v-on:mouseup='mouseUp'
+                    cursor='nw-resize'
                     :cx='rect.sx'
                     :cy='rect.sy'
                     r='4'
-                    fill='#0008'/>
+                    fill='#0000'/>
                 <circle
                     v-on:mousedown='mouseDown(this, 2)'
                     v-on:mouseup='mouseUp'
+                    cursor='se-resize'
                     :cx='rect.tx'
                     :cy='rect.ty'
                     r='4'
-                    fill='#0008'/>
+                    fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 3)'
+                    v-on:mouseup='mouseUp'
+                    cursor='ne-resize'
+                    :cx='rect.tx'
+                    :cy='rect.sy'
+                    r='4'
+                    fill='#0000'/>
+                <circle
+                    v-on:mousedown='mouseDown(this, 4)'
+                    v-on:mouseup='mouseUp'
+                    cursor='sw-resize'
+                    :cx='rect.sx'
+                    :cy='rect.ty'
+                    r='4'
+                    fill='#0000'/>
             </svg>
             <div id='contextmenu' ref='contextmenu'>
                 <p v-on:click="type='b'">Bird</p>
@@ -188,6 +239,7 @@ Vue.component('app', {
                     this.rect.tx = parseInt(this.mousev.x + this.mouse.dtx);
                     this.rect.ty = parseInt(this.mousev.y + this.mouse.dty);
                 }
+
                 if(this.mouse.type == 1){
                     this.rect.sx = parseInt(this.mousev.x + this.mouse.dsx);
                     this.rect.sy = parseInt(this.mousev.y + this.mouse.dsy);
@@ -195,6 +247,27 @@ Vue.component('app', {
                 if(this.mouse.type == 2){
                     this.rect.tx = parseInt(this.mousev.x + this.mouse.dtx);
                     this.rect.ty = parseInt(this.mousev.y + this.mouse.dty);
+                }
+                if(this.mouse.type == 3){
+                    this.rect.tx = parseInt(this.mousev.x + this.mouse.dtx);
+                    this.rect.sy = parseInt(this.mousev.y + this.mouse.dsy);
+                }
+                if(this.mouse.type == 4){
+                    this.rect.sx = parseInt(this.mousev.x + this.mouse.dsx);
+                    this.rect.ty = parseInt(this.mousev.y + this.mouse.dty);
+                }
+
+                if(this.mouse.type == 5){
+                    this.rect.sy = parseInt(this.mousev.y + this.mouse.dsy);
+                }
+                if(this.mouse.type == 6){
+                    this.rect.tx = parseInt(this.mousev.x + this.mouse.dtx);
+                }
+                if(this.mouse.type == 7){
+                    this.rect.ty = parseInt(this.mousev.y + this.mouse.dty);
+                }
+                if(this.mouse.type == 8){
+                    this.rect.sx = parseInt(this.mousev.x + this.mouse.dsx);
                 }
             }
         }, 
