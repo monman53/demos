@@ -1,25 +1,103 @@
-<title>2D Fast Fourier Transform Demo</title>
+<title>2D Inverse Fourier Transform Playground</title>
 <meta charset="UTF-8">
 <meta name='viewport' content='width=device-width, initial-scale=1'>
-<meta name='description' content='2D Fast Fourier Transform(2DFFT) demo using WebGL2.0.'>
+<meta name='description' content='2D fast Fourier transform live demo using WebGL2.0. 2DFFT'>
 <!-- <script src='https://cdn.jsdelivr.net/npm/vue/dist/vue.js'></script> -->
 <script src='vue.min.js'></script>
 <script src='three.min.js'></script>
+<!-- <script src='three.js'></script> -->
+
+<style>
+canvas {
+    box-sizing: border-box;
+    border: solid 1px;
+    image-rendering:optimizeSpeed;             /* Legal fallback */
+    image-rendering:-moz-crisp-edges;          /* Firefox        */
+    image-rendering:-o-crisp-edges;            /* Opera          */
+    image-rendering:-webkit-optimize-contrast; /* Safari         */
+    image-rendering:optimize-contrast;         /* CSS3 Proposed  */
+    image-rendering:crisp-edges;               /* CSS4 Proposed  */
+    image-rendering:pixelated;                 /* CSS4 Proposed  */
+    -ms-interpolation-mode:nearest-neighbor;   /* IE8+           */
+}
+.wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* grid-gap: 10px; */
+    /* grid-auto-rows: minmax(100px, auto); */
+}
+svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+</style>
 
 <div class='app'>
-    <h1>2D Fast Fourier Transform Demo</h1>
-    <h2>Forward</h2>
-    <h3>Original Image</h3>
+    <h1>2D Inverse Fourier Transform Playground</h1>
     image URL: 
     <input v-model='imageURL'> 
     <button v-on:click='loadImage'>Update</button><br>
-    <canvas id='cv0'></canvas>
-    <canvas id='cv1'></canvas>
-    <h2>Backward</h2>
-    <canvas id='cv2'></canvas>
-    <canvas id='cv3'></canvas>
+    <div class='wrapper'>
+        <div>
+            <h2>Power spectral</h2>
+            <div style='position: relative;'>
+                <canvas id='cv1'
+                    @mousemove='mouseMove'
+                    @mousedown='mouseDown'
+                    @mouseup='mouseUp'
+                    @mouseleave='uniforms.b_active.value=false'
+                    @wheel='wheel'
+                    style='cursor: crosshair;'
+                    oncontextmenu='return false'
+                ></canvas>
+                <svg :width='styleN' :height='styleN'>
+                    <circle
+                        :cx='uniforms.b_xy.value.x*styleN'
+                        :cy='(1.0-uniforms.b_xy.value.y)*styleN'
+                        :r='uniforms.b_r.value*styleN'
+                        stroke='red'
+                        fill='none'
+                        stroke-width='4'/>
+                </svg>
+            </div>
+        </div>
+        <div>
+            <h2>Mask editor</h2>
+            <div style='position: relative;'>
+                <canvas id='cv2'
+                    @mousemove='mouseMove'
+                    @mousedown='mouseDown'
+                    @mouseup='mouseUp'
+                    @mouseleave='uniforms.b_active.value=false'
+                    @wheel='wheel'
+                    style='cursor: crosshair;'
+                    oncontextmenu='return false'
+                ></canvas>
+                <svg :width='styleN' :height='styleN'>
+                    <circle
+                        :cx='uniforms.b_xy.value.x*styleN'
+                        :cy='(1.0-uniforms.b_xy.value.y)*styleN'
+                        :r='uniforms.b_r.value*styleN'
+                        stroke='red'
+                        fill='none'
+                        stroke-width='4'/>
+                </svg>
+            </div>
+            <input type='range' min='0.001' max='0.2' step='0.001' v-model:number='uniforms.b_r.value'></input>size: {{uniforms.b_r.value}}<br>
+            <input type='range' min='0.0' max='1.0' step='0.01' v-model:number='uniforms.b_v.value'></input>mask value: {{uniforms.b_v.value}}<br>
+            <button @click='clear'>Clear</button><br>
+            <!-- uniforms.b_active: {{uniforms.b_active}}<br> -->
+            <!-- uniforms.b_type: {{uniforms.b_type}}<br> -->
+        </div>
+        <div>
+            <h2>Result of inverse Fourier transform</h2>
+            <canvas id='cv3'></canvas>
+        </div>
+    </div>
+    <canvas id='cv0' style='display: none;'></canvas>
 </div>
-
 
 
 <script type="x-shader/x-vertex" id="vs" >
@@ -29,167 +107,267 @@
     }
 </script>
 
-
 <script type='x-shader/x-fragment' id='fscv0'>
     #version 300 es
     precision highp float;
-    //precision highp int;
     
     uniform vec2 d;
-    uniform sampler2D ta, tb;
+    uniform sampler2D ta;
     
     out vec4 fragColor;
     
     void main() {
-        vec2 p = gl_FragCoord.xy*d;
-        vec4 c = texture(ta, p);
+        vec4 c = texture(ta, gl_FragCoord.xy*d);
         float gray = (c.r + c.g + c.b)/3.0;
         fragColor = vec4(gray);
     }
 </script>
-
 
 <script type='x-shader/x-fragment' id='fscv1'>
     #version 300 es
     precision highp float;
-    //precision highp int;
+    precision mediump int;
     
-    //uniform vec2 d;
-    //uniform sampler2D ta, tb;
+    uniform int N;
+    uniform vec2 d;
+    uniform sampler2D ta;
+    uniform vec2 b_xy;
+    uniform float b_r;
     
     out vec4 fragColor;
     
     void main() {
-        fragColor = vec4(1, 0, 0, 0);
+        uint n = uint(N);
+        uvec2 pi = uvec2(gl_FragCoord.xy);
+        pi = (pi + (n >> 1))%n;
+        vec2 pf = vec2(pi) + 0.5;
+        float F = log(length(texture(ta, pf*d).rg*float(N)))/8.0; // TODO 8 is magick number
+        fragColor = vec4(F);
     }
 </script>
-
 
 <script type='x-shader/x-fragment' id='fscv2'>
     #version 300 es
     precision highp float;
-    //precision highp int;
+    precision mediump int;
     
-    //uniform vec2 d;
-    //uniform sampler2D ta, tb;
+    uniform int N;
+    uniform vec2 d;
+    uniform sampler2D ta, tb;
+    uniform vec2 b_xy;
+    uniform float b_r;
     
     out vec4 fragColor;
     
     void main() {
-        fragColor = vec4(1, 0, 0, 0);
+        vec4 mask = texture(tb, gl_FragCoord.xy*d);
+        fragColor = vec4(mask.x);
     }
 </script>
-
 
 <script type='x-shader/x-fragment' id='fscv3'>
     #version 300 es
     precision highp float;
-    //precision highp int;
+    precision mediump int;
     
-    //uniform vec2 d;
-    //uniform sampler2D ta, tb;
+    uniform int N;
+    uniform vec2 d;
+    uniform sampler2D ta;
     
     out vec4 fragColor;
     
     void main() {
-        vec2 p = gl_FragCoord.xy*d;
-        vec4 c = texture(ta, p);
-        float gray = (c.r + c.g + c.b)/3.0;
-        fragColor = vec4(gray);
+        fragColor = vec4(texture(ta, gl_FragCoord.xy*d).x);
     }
 </script>
 
-
-<script lang="javascript">
-    'use strict';
-
-    let N = 512;        // image size (width and height)
-
-    let renderer = [];  // WebGLRenderer
-    let mfscv    = [];  // ShaderMaterial for canvas
-    let mfs      = [];  // ShaderMaterial for texture
-    let tex = [];       // textures
-
-    // textures
-    tex.push(new THREE.WebGLRenderTarget(N, N));
-    tex.push([
-        new THREE.WebGLRenderTarget(N, N),
-        new THREE.WebGLRenderTarget(N, N),
-    ]);
-
-    let uniforms = {
-        d:          {type: 'v2', value: new THREE.Vector2(1.0/N, 1.0/N)},
-        ta:         {type: 't',  value: undefined},
-        tb:         {type: 't',  value: undefined},
-    };
-
-    // prepare shader materials
-    for(let i=0;i<4;i++){
-        mfscv.push(
-            new THREE.ShaderMaterial({
-                vertexShader: document.getElementById('vs').textContent.trim(),
-                fragmentShader: document.getElementById('fscv'+i).textContent.trim(),
-                uniforms: uniforms,
-            })
-        );
-    }
-
-
-    let scene    = new THREE.Scene();
-    let camera   = new THREE.OrthographicCamera(-0.5, 0.5, 0.5, -0.5, -1, 1);
-
-    camera.position.z = 1;
-    scene.add(camera)
-
-    let plane = new THREE.PlaneGeometry(1.0, 1.0);
-    let mesh  = new THREE.Mesh(plane);
-    scene.add(mesh);
-
-
-    var app = new Vue({
-        el: '.app',
-        data: {
-            imageURL: 'image.png',
-        }, 
-        mounted: function () {
-            // prepare renderer
-            for(let i=0;i<4;i++){
-                let cv = document.getElementById('cv'+i);
-                cv.width  = N;
-                cv.height = N;
-                let ctx = cv.getContext('webgl2', {alpha: false});
-                renderer.push(new THREE.WebGLRenderer({canvas: cv, context: ctx}));
+<script type='x-shader/x-fragment' id='fsd'>
+    #version 300 es
+    precision highp float;
+    precision mediump int;
+    
+    uniform int N;
+    uniform vec2 d, b_xy;
+    uniform int b_active, b_type;
+    uniform float b_r, b_v;
+    
+    uniform sampler2D ta;
+    
+    out vec4 fragColor;
+    
+    void main() {
+        fragColor.x = texture(ta, gl_FragCoord.xy*d).x;
+        float dist = distance(gl_FragCoord.xy*d, b_xy);
+        if(b_active > 0){
+            if(dist < b_r){
+                switch(b_type){
+                    case 1: fragColor.x = b_v; break;
+                    case 2: fragColor.x = 1.0; break;
+                }
             }
-
-            this.loadImage();
-        },
-        methods: {
-            loadImage: function() {
-                var loader = new THREE.TextureLoader();
-                loader.load(
-                    this.imageURL,
-                    // onLoad callback
-                    this.init,
-                    // onProgress callback currently not supported
-                    undefined,
-                    // onError callback
-                    function() {
-                        console.error('Load Error');
-                    }
-                );
-            },
-            init: function(texture) {
-                tex[0] = texture;
-
-                uniforms.ta.value = tex[0];
-
-                mesh.material = mfscv[0];
-                // renderer0.setRenderTarget(null);    // to canvas0
-
-                renderer[0].render(scene, camera)
-                //mesh.material = mfscv1;
-                //renderer1.render(scene, camera)
-            },
-        },
-    });
+        }
+        switch(b_type){
+            case 3: fragColor.x = 1.0; break;
+        }
+    }
 </script>
+
+<script type='x-shader/x-fragment' id='fs0'>
+    #version 300 es
+    precision highp float;
+    precision mediump int;
+    
+    uniform int N;
+    uniform vec2 d;
+    uniform sampler2D ta, tb;
+    
+    out vec4 fragColor;
+
+    uvec2 reverse(uvec2 n) {
+        uvec2 res = uvec2(0u);
+        for(uint i=1u;i<uint(N);i<<=1u){
+            res <<= 1u;
+            res |= n & 1u;
+            n >>= 1u;
+        }
+        return res;
+    }
+    
+    void main() {
+        uvec2 pi = uvec2(gl_FragCoord.xy);
+        pi = reverse(pi);
+        vec2 pf = (vec2(pi) + 0.5)*d;
+        vec4 c = texture(ta, pf);
+        float gray = (c.r + c.g + c.b)/3.0;
+        fragColor = vec4(gray/float(N), 0.0, 0.0, 0.0);
+    }
+</script>
+
+<script type='x-shader/x-fragment' id='fs1'>
+    #version 300 es
+    precision highp float;
+    precision mediump int;
+    
+    uniform int N;
+    uniform int itr;
+    uniform vec2 d;
+    uniform sampler2D ta;
+    
+    out vec4 fragColor;
+
+    vec2 mul(vec2 a, vec2 b) {
+        return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x);
+    }
+
+    vec2 expi(uint n) {
+        float y  = -2.0*acos(-1.0)/float(itr)*float(n);
+        return vec2(cos(y), sin(y));
+    }
+    
+    void main() {
+        uint n = uint(N);
+        uint m = uint(itr);
+        uvec2 pi = uvec2(gl_FragCoord.xy);
+        uvec2 pim = pi&((m>>1)-1u);
+        uvec2 pio = pi&~(m-1u)+pim;
+    
+        vec2 v0 = texture(ta, (vec2(pio+uvec2(0u,   0u  ))+0.5)*d).xy;
+        vec2 v1 = texture(ta, (vec2(pio+uvec2(m>>1, 0u  ))+0.5)*d).xy;
+        vec2 v2 = texture(ta, (vec2(pio+uvec2(0u,   m>>1))+0.5)*d).xy;
+        vec2 v3 = texture(ta, (vec2(pio+uvec2(m>>1, m>>1))+0.5)*d).xy;
+    
+        //v0 = mul(v0, expi((0u       )%m));
+        v1 = mul(v1, expi((pi.x     )&(m-1u)));
+        v2 = mul(v2, expi((pi.y     )&(m-1u)));
+        v3 = mul(v3, expi((pi.x+pi.y)&(m-1u)));
+
+        vec2 res = v0+v1+v2+v3;
+        fragColor = vec4(res, 0.0, 0.0);
+    }
+</script>
+
+<script type='x-shader/x-fragment' id='fs2'>
+    #version 300 es
+    precision highp float;
+    precision mediump int;
+    
+    uniform int N;
+    uniform int itr;
+    uniform vec2 d;
+    uniform sampler2D ta, tb;
+    
+    out vec4 fragColor;
+
+    uvec2 reverse(uvec2 n) {
+        uvec2 res = uvec2(0u);
+        for(uint i=1u;i<uint(N);i<<=1u){
+            res <<= 1u;
+            res |= n & 1u;
+            n >>= 1u;
+        }
+        return res;
+    }
+    
+    void main() {
+        uint n = uint(N);
+
+        uvec2 pi = uvec2(gl_FragCoord.xy);
+        pi = reverse(pi);
+        vec2 pf = (vec2(pi) + 0.5)*d;
+
+        uvec2 mpi = uvec2(gl_FragCoord.xy);
+        mpi = reverse(mpi);
+        mpi = (mpi + (n >> 1))%n;
+        vec2 mpf = vec2(mpi) + 0.5;
+        float mask = texture(tb, mpf*d).r;
+
+        fragColor = texture(ta, pf)/float(N)*mask;
+    }
+</script>
+
+<script type='x-shader/x-fragment' id='fs3'>
+    #version 300 es
+    precision highp float;
+    precision mediump int;
+    
+    uniform int N;
+    uniform int itr;
+    uniform vec2 d;
+    uniform sampler2D ta;
+    
+    out vec4 fragColor;
+    
+    vec2 mul(vec2 a, vec2 b) {
+        return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x);
+    }
+    
+    vec2 expi(uint n) {
+        float y  = +2.0*acos(-1.0)/float(itr)*float(n);
+        return vec2(cos(y), sin(y));
+    }
+    
+    void main() {
+        uint n = uint(N);
+        uint m = uint(itr);
+        uvec2 pi = uvec2(gl_FragCoord.xy);
+        uvec2 pim = pi&((m>>1)-1u);
+        uvec2 pio = pi&~(m-1u)+pim;
+    
+        vec2 v0 = texture(ta, (vec2(pio+uvec2(0u,   0u  ))+0.5)*d).xy;
+        vec2 v1 = texture(ta, (vec2(pio+uvec2(m>>1, 0u  ))+0.5)*d).xy;
+        vec2 v2 = texture(ta, (vec2(pio+uvec2(0u,   m>>1))+0.5)*d).xy;
+        vec2 v3 = texture(ta, (vec2(pio+uvec2(m>>1, m>>1))+0.5)*d).xy;
+    
+        //v0 = mul(v0, expi((0u       )%m));
+        v1 = mul(v1, expi((pi.x     )&(m-1u)));
+        v2 = mul(v2, expi((pi.y     )&(m-1u)));
+        v3 = mul(v3, expi((pi.x+pi.y)&(m-1u)));
+    
+        vec2 res = v0+v1+v2+v3;
+        fragColor = vec4(res, 0.0, 0.0);
+}
+</script>
+<!-- }}} -->
+
+
+<script src='main.js'></script>
