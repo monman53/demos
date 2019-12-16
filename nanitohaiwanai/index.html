@@ -118,9 +118,9 @@ Vue.component('app', {
             </svg>
             <div id='contextmenu' ref='contextmenu' v-bind:style="{position: 'fixed', visibility: ctxmenu.visibility, left: ctxmenu.x+'px', top: ctxmenu.y+'px'}">
                 <div class="btn-group-vertical">
-                    <button type='button' class="btn btn-primary" @click="type='b'">Bird</button>
-                    <button type='button' class="btn btn-primary" @click="type='n'">Non Bird</button>
-                    <button type='button' class="btn btn-primary" @click="type='u'">Unknown</button>
+                    <button type='button' class="btn btn-primary" @click="type='b'" onclick="onClick('b')">Bird</button>
+                    <button type='button' class="btn btn-primary" @click="type='n'" onclick="onClick('n')">Non Bird</button>
+                    <button type='button' class="btn btn-primary" @click="type='u'" onclick="onClick('u')">Unknown</button>
                 </div>
             </div>
             <div id='header'>
@@ -353,5 +353,9 @@ document.addEventListener('keydown', function(e) {
     if(e.code == 'KeyX') app.$refs.main.type = 'n';
     if(e.code == 'KeyC') app.$refs.main.type = 'u';
 });
+
+function onClick(type) {
+    console.log(type);
+}
 
 </script>
